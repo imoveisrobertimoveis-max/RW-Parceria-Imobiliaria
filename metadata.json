@@ -1,0 +1,7 @@
+{
+  "name": "Imobiliárias Parceiras",
+  "description": "Sistema avançado para gestão e cadastro de empresas parceiras com análise inteligente de dados e geolocalização.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
