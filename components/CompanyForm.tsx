@@ -448,10 +448,14 @@ export const CompanyForm: React.FC<CompanyFormProps> = ({ onSave, onCancel, init
                 <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">E-mail para Notificações</label>
                 <input type="email" required className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} placeholder="exemplo@imobiliaria.com.br" />
              </div>
+             <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Gestor Externo (No Parceiro)</label>
+                <input className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none" value={formData.partnershipManager} onChange={e => setFormData({ ...formData, partnershipManager: e.target.value })} placeholder="Nome do contato estratégico" />
+             </div>
              {!isPublic && (
                <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase text-indigo-600 tracking-wider">Gestor da Parceria (Hub)</label>
-                  <input required className="w-full px-5 py-4 bg-indigo-50 border border-indigo-100 rounded-2xl outline-none font-black text-indigo-900" value={formData.partnershipManager} onChange={e => setFormData({ ...formData, partnershipManager: e.target.value })} placeholder="Atendente responsável" />
+                  <label className="text-[10px] font-black uppercase text-indigo-600 tracking-wider">Responsável Interno (Hub)</label>
+                  <input required className="w-full px-5 py-4 bg-indigo-50 border border-indigo-100 rounded-2xl outline-none font-black text-indigo-900" value={formData.hiringManager} onChange={e => setFormData({ ...formData, hiringManager: e.target.value })} placeholder="Nome do gestor interno" />
                </div>
              )}
           </div>

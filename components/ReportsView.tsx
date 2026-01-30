@@ -34,7 +34,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ companies, onEdit, onD
     const columns = "NOME DA EMPRESA | CNPJ | TELEFONE | STATUS | GESTOR DA PARCERIA | RESP. HUB\n";
     
     const rows = companies.map(c => {
-      return `${c.name.padEnd(30)} | ${c.cnpj.padEnd(20)} | ${c.phone.padEnd(15)} | ${c.status.padEnd(10)} | ${(c.partnershipManager || 'N/A').padEnd(20)} | ${c.hiringManager}`;
+      return `${c.name.padEnd(30)} | ${c.cnpj.padEnd(20)} | ${c.phone.padEnd(15)} | ${c.status.padEnd(10)} | ${(c.partnershipManager || 'N/A').padEnd(20)} | ${c.hiringManager || 'N/A'}`;
     }).join('\n');
 
     const content = header + dateStr + separator + columns + separator + rows;
@@ -68,15 +68,17 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ companies, onEdit, onD
     doc.setFontSize(11);
     doc.setTextColor(30, 41, 59);
     doc.text(`Total de Parceiros: ${companies.length} (${activeCount} Ativos)`, 14, 55);
+    
     const tableData = companies.map(company => [
       company.name,
-      company.hiringManager, // Responsável Interno
-      company.partnershipManager || company.responsible,
+      company.hiringManager || 'Não atribuído', // Responsável Interno (Hub)
+      company.partnershipManager || company.responsible || 'N/A',
       company.phone,
       company.status,
       `${company.commissionRate}%`,
       company.brokerCount.toString()
     ]);
+
     autoTable(doc, {
       startY: 65,
       head: [['Imobiliária', 'Resp. Interno (Hub)', 'Gestor da Parceria', 'Telefone', 'Status', 'Comissão', 'Equipe']],
@@ -130,7 +132,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ companies, onEdit, onD
       
       const tableData = companies.map(c => [
         c.name, 
-        c.hiringManager, // Resp Interno
+        c.hiringManager || 'N/A', // Resp Interno
         c.address.split(' - ').slice(-1)[0] || 'N/A', 
         c.status, 
         `${c.commissionRate}%`
@@ -180,7 +182,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ companies, onEdit, onD
     doc.line(14, 77, 70, 77);
 
     const gestaoData = [
-      ['Resp. Hub (Interno):', company.hiringManager, 'Gestor da Parceria:', company.partnershipManager || 'Não informado'],
+      ['Resp. Hub (Interno):', company.hiringManager || 'N/A', 'Gestor da Parceria:', company.partnershipManager || 'Não informado'],
       ['Responsável Local:', company.responsible, 'Email:', company.email],
       ['Telefone:', company.phone, 'Início Parceria:', new Date(company.registrationDate).toLocaleDateString('pt-BR')]
     ];
@@ -257,7 +259,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ companies, onEdit, onD
                   <p className="text-[10px] text-slate-500 font-mono mt-0.5">{company.cnpj}</p>
                 </td>
                 <td className="px-6 py-4">
-                  <p className="text-[10px] text-blue-500 font-black uppercase">Hub: {company.hiringManager}</p>
+                  <p className="text-[10px] text-blue-500 font-black uppercase">Hub: {company.hiringManager || 'N/A'}</p>
                   <p className="text-xs font-medium text-slate-700">Ext: {company.partnershipManager || company.responsible}</p>
                 </td>
                 <td className="px-6 py-4 text-center">
