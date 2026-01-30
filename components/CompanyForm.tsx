@@ -1,6 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { Company, ContactHistoryEntry, Broker } from '../types';
+import { fetchCompanyByCNPJ } from '../services/geminiService';
 
 interface CompanyFormProps {
   onSave: (company: Omit<Company, 'id' | 'registrationDate'>) => void;
@@ -41,6 +42,14 @@ export const CompanyForm: React.FC<CompanyFormProps> = ({ onSave, onCancel, init
   };
 
   const maskCEP = (v: string) => v.replace(/\D/g, "").substring(0, 8).replace(/^(\d{5})(\d)/, "$1-$2");
+  const maskCNPJ = (v: string) => {
+    let r = v.replace(/\D/g, "").substring(0, 14);
+    if (r.length > 12) return r.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, "$1.$2.$3/$4-$5");
+    if (r.length > 8) return r.replace(/^(\d{2})(\d{3})(\d{3})(\d{0,4})/, "$1.$2.$3/$4");
+    if (r.length > 5) return r.replace(/^(\d{2})(\d{3})(\d{0,3})/, "$1.$2.$3");
+    if (r.length > 2) return r.replace(/^(\d{2})(\d{0,3})/, "$1.$2");
+    return r;
+  };
 
   // --- Estados ---
   const [docType, setDocType] = useState<'CNPJ' | 'CPF'>(
@@ -81,7 +90,9 @@ export const CompanyForm: React.FC<CompanyFormProps> = ({ onSave, onCancel, init
   });
 
   const [isSearchingCEP, setIsSearchingCEP] = useState(false);
+  const [isSearchingCNPJ, setIsSearchingCNPJ] = useState(false);
   const [cepError, setCepError] = useState<string | null>(null);
+  const [cnpjError, setCnpjError] = useState<string | null>(null);
 
   useEffect(() => {
     if (initialData?.address) {
@@ -97,6 +108,58 @@ export const CompanyForm: React.FC<CompanyFormProps> = ({ onSave, onCancel, init
       }));
     }
   }, [initialData]);
+
+  // Handler para busca de CNPJ
+  const handleCNPJLookup = async (cnpj: string) => {
+    const clean = cnpj.replace(/\D/g, '');
+    if (clean.length !== 14 || docType !== 'CNPJ') return;
+    
+    setIsSearchingCNPJ(true);
+    setCnpjError(null);
+    
+    try {
+      const data = await fetchCompanyByCNPJ(clean);
+      
+      if (data) {
+        // Combinar Nome Fantasia e Razão Social para o campo de Nome
+        let finalName = data.razao_social;
+        if (data.nome_fantasia && data.nome_fantasia !== data.razao_social) {
+          finalName = `${data.nome_fantasia} (${data.razao_social})`;
+        }
+
+        setFormData(prev => ({
+          ...prev,
+          name: finalName || prev.name,
+          cep: data.cep ? maskCEP(data.cep) : prev.cep,
+          email: data.email || prev.email,
+          phone: data.ddd_telefone_1 ? maskPhone(data.ddd_telefone_1) : prev.phone,
+          street: data.logradouro || prev.street,
+          number: data.numero || prev.number,
+          neighborhood: data.bairro || prev.neighborhood,
+          city: data.municipio || prev.city,
+          state: data.uf || prev.state,
+          complement: data.complemento || prev.complement,
+        }));
+        
+        // Se retornou CEP e não retornou endereço completo, dispara busca de CEP como fallback
+        if (data.cep && !data.logradouro) {
+          handleCEPLookup(data.cep);
+        } else if (data.numero) {
+          // Focar no campo de responsável após preenchimento automático bem sucedido
+          setTimeout(() => {
+            const respInput = document.querySelector('input[placeholder="Nome para contato"]') as HTMLInputElement;
+            respInput?.focus();
+          }, 300);
+        }
+      } else {
+        setCnpjError('CNPJ não encontrado ou erro na consulta.');
+      }
+    } catch (error) {
+      setCnpjError('Erro ao consultar CNPJ.');
+    } finally {
+      setIsSearchingCNPJ(false);
+    }
+  };
 
   const handleCEPLookup = async (cep: string) => {
     const clean = cep.replace(/\D/g, '');
@@ -195,15 +258,10 @@ export const CompanyForm: React.FC<CompanyFormProps> = ({ onSave, onCancel, init
             <span className="text-[11px] font-black uppercase tracking-widest text-indigo-600">Dados da Empresa</span>
           </div>
           
-          <div className="space-y-2">
-            <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Razão Social / Nome Fantasia</label>
-            <input required className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all font-bold text-slate-800" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} />
-          </div>
-
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
               <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">CNPJ ou CPF</label>
-              <div className="flex gap-2">
+              <div className="flex gap-2 relative">
                 <select 
                   className="w-28 px-4 py-4 bg-slate-100 border border-slate-200 rounded-2xl outline-none text-[10px] font-black text-slate-600"
                   value={docType}
@@ -212,16 +270,36 @@ export const CompanyForm: React.FC<CompanyFormProps> = ({ onSave, onCancel, init
                   <option value="CNPJ">CNPJ</option>
                   <option value="CPF">CPF</option>
                 </select>
-                <input 
-                  required 
-                  className="flex-1 px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:border-indigo-500 transition-all font-mono" 
-                  value={formData.cnpj} 
-                  onChange={e => setFormData({ ...formData, cnpj: e.target.value })} 
-                  placeholder={docType === 'CNPJ' ? "00.000.000/0000-00" : "000.000.000-00"} 
-                />
+                <div className="relative flex-1">
+                  <input 
+                    required 
+                    className={`w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:border-indigo-500 transition-all font-mono ${cnpjError ? 'border-red-300' : ''}`} 
+                    value={docType === 'CNPJ' ? maskCNPJ(formData.cnpj) : formData.cnpj} 
+                    onChange={e => {
+                      const val = e.target.value;
+                      setFormData({ ...formData, cnpj: val });
+                      const clean = val.replace(/\D/g, '');
+                      if (clean.length === 14 && docType === 'CNPJ') {
+                        handleCNPJLookup(clean);
+                      }
+                    }} 
+                    placeholder={docType === 'CNPJ' ? "00.000.000/0000-00" : "000.000.000-00"} 
+                  />
+                  {isSearchingCNPJ && (
+                    <div className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                  )}
+                </div>
               </div>
+              {cnpjError && <p className="text-[10px] text-red-500 font-bold ml-1">{cnpjError}</p>}
             </div>
 
+            <div className="space-y-2">
+              <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Razão Social / Nome Fantasia</label>
+              <input required className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all font-bold text-slate-800" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
               <label className="text-[10px] font-black uppercase text-indigo-600 tracking-wider">Registro CRECI Jurídico (Opcional)</label>
               <div className="flex gap-2">

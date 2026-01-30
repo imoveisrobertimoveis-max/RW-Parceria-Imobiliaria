@@ -31,10 +31,10 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ companies, onEdit, onD
     const header = "LISTA DE PARCEIROS - PORTAL PARTNERHUB\n";
     const dateStr = `Exportado em: ${new Date().toLocaleString('pt-BR')}\n`;
     const separator = "----------------------------------------------------------------------------------------------------\n";
-    const columns = "NOME DA EMPRESA | CNPJ | TELEFONE | STATUS | GESTOR DA PARCERIA\n";
+    const columns = "NOME DA EMPRESA | CNPJ | TELEFONE | STATUS | GESTOR DA PARCERIA | RESP. HUB\n";
     
     const rows = companies.map(c => {
-      return `${c.name.padEnd(30)} | ${c.cnpj.padEnd(20)} | ${c.phone.padEnd(15)} | ${c.status.padEnd(10)} | ${c.partnershipManager || 'N/A'}`;
+      return `${c.name.padEnd(30)} | ${c.cnpj.padEnd(20)} | ${c.phone.padEnd(15)} | ${c.status.padEnd(10)} | ${(c.partnershipManager || 'N/A').padEnd(20)} | ${c.hiringManager}`;
     }).join('\n');
 
     const content = header + dateStr + separator + columns + separator + rows;
@@ -70,7 +70,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ companies, onEdit, onD
     doc.text(`Total de Parceiros: ${companies.length} (${activeCount} Ativos)`, 14, 55);
     const tableData = companies.map(company => [
       company.name,
-      company.hiringManager,
+      company.hiringManager, // Responsável Interno
       company.partnershipManager || company.responsible,
       company.phone,
       company.status,
@@ -79,7 +79,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ companies, onEdit, onD
     ]);
     autoTable(doc, {
       startY: 65,
-      head: [['Imobiliária', 'Resp. Interno', 'Gestor da Parceria', 'Telefone', 'Status', 'Comissão', 'Equipe']],
+      head: [['Imobiliária', 'Resp. Interno (Hub)', 'Gestor da Parceria', 'Telefone', 'Status', 'Comissão', 'Equipe']],
       body: tableData,
       theme: 'striped',
       headStyles: { fillColor: [37, 99, 235], fontSize: 10, halign: 'left' },
@@ -103,7 +103,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ companies, onEdit, onD
       mapContainer.style.top = '-9999px';
       document.body.appendChild(mapContainer);
       const map = L.map(mapContainer, { zoomControl: false }).setView([-23.5505, -46.6333], 12);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(map);
       const markers: L.Marker[] = [];
       companies.forEach(company => {
         const color = company.status === 'Ativo' ? '#2563eb' : '#64748b';
@@ -127,10 +127,18 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ companies, onEdit, onD
       doc.setTextColor(30, 41, 59);
       doc.text('Relatório de Presença Geográfica', 14, 30);
       doc.addImage(mapImageData, 'PNG', 14, 45, 182, 100);
-      const tableData = companies.map(c => [c.name, c.cnpj, c.address.split(' - ').pop() || 'N/A', c.status, `${c.commissionRate}%`]);
+      
+      const tableData = companies.map(c => [
+        c.name, 
+        c.hiringManager, // Resp Interno
+        c.address.split(' - ').slice(-1)[0] || 'N/A', 
+        c.status, 
+        `${c.commissionRate}%`
+      ]);
+
       autoTable(doc, {
         startY: 160,
-        head: [['Imobiliária', 'Documento', 'Localização', 'Status', 'Comissão']],
+        head: [['Imobiliária', 'Resp. Interno (Hub)', 'Localização', 'Status', 'Comissão']],
         body: tableData,
         theme: 'grid',
         headStyles: { fillColor: [37, 99, 235] },
@@ -172,8 +180,8 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ companies, onEdit, onD
     doc.line(14, 77, 70, 77);
 
     const gestaoData = [
-      ['Resp. Operacional:', company.responsible, 'Gestor da Parceria:', company.partnershipManager || 'Não informado'],
-      ['Gestor Hub:', company.hiringManager, 'Email:', company.email],
+      ['Resp. Hub (Interno):', company.hiringManager, 'Gestor da Parceria:', company.partnershipManager || 'Não informado'],
+      ['Responsável Local:', company.responsible, 'Email:', company.email],
       ['Telefone:', company.phone, 'Início Parceria:', new Date(company.registrationDate).toLocaleDateString('pt-BR')]
     ];
 
@@ -204,7 +212,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ companies, onEdit, onD
       columnStyles: { 0: { fontStyle: 'bold', cellWidth: 40 }, 1: { cellWidth: 50 }, 2: { fontStyle: 'bold', cellWidth: 40 }, 3: { cellWidth: 50 } }
     });
 
-    doc.save(`prontuario-${company.name.toLowerCase().replace(/\s+/g, '-')}.pdf`);
+    doc.save(`relatorio-geral-parceiros-${new Date().getTime()}.pdf`);
   };
 
   return (
@@ -235,7 +243,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ companies, onEdit, onD
           <thead className="bg-slate-50 border-b border-slate-200">
             <tr>
               <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Parceiro Imobiliário</th>
-              <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Gestores (Parceria / Hub)</th>
+              <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Gestores (Hub / Externo)</th>
               <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase text-center">Status</th>
               <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase text-center">Comissão</th>
               <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase text-right no-print">Ações</th>
@@ -249,12 +257,16 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ companies, onEdit, onD
                   <p className="text-[10px] text-slate-500 font-mono mt-0.5">{company.cnpj}</p>
                 </td>
                 <td className="px-6 py-4">
-                  <p className="text-xs font-medium text-slate-700">P: {company.partnershipManager || 'N/D'}</p>
-                  <p className="text-[10px] text-blue-500 italic">H: {company.hiringManager}</p>
+                  <p className="text-[10px] text-blue-500 font-black uppercase">Hub: {company.hiringManager}</p>
+                  <p className="text-xs font-medium text-slate-700">Ext: {company.partnershipManager || company.responsible}</p>
                 </td>
                 <td className="px-6 py-4 text-center">
-                  <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold ${company.status === 'Ativo' ? 'bg-green-50 text-green-700' : 'bg-slate-100 text-slate-500'}`}>
-                    <span className={`w-1.5 h-1.5 rounded-full ${company.status === 'Ativo' ? 'bg-green-600' : 'bg-slate-400'}`}></span>
+                  <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold border transition-colors ${company.status === 'Ativo' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-slate-50 text-slate-500 border-slate-200'}`}>
+                    {company.status === 'Ativo' ? (
+                      <span className="w-2 h-2 rounded-full bg-green-500 shadow-sm shadow-green-200 animate-pulse"></span>
+                    ) : (
+                      <span className="w-2 h-2 rounded-full bg-slate-300"></span>
+                    )}
                     {company.status}
                   </span>
                 </td>

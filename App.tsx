@@ -56,6 +56,7 @@ const App: React.FC = () => {
   // Filtros
   const [nameFilter, setNameFilter] = useState('');
   const [cnpjFilter, setCnpjFilter] = useState('');
+  const [cepFilter, setCepFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [partnershipManagerFilter, setPartnershipManagerFilter] = useState<string>('all');
   const [minBrokers, setMinBrokers] = useState<string>('');
@@ -132,6 +133,7 @@ const App: React.FC = () => {
     return companies.filter(c => {
       const matchesName = c.name.toLowerCase().includes(nameFilter.toLowerCase());
       const matchesCnpj = c.cnpj.replace(/\D/g, '').includes(cnpjFilter.replace(/\D/g, ''));
+      const matchesCep = (c.cep || '').replace(/\D/g, '').includes(cepFilter.replace(/\D/g, ''));
       const matchesStatus = statusFilter === 'all' || c.status === statusFilter;
       const matchesManager = partnershipManagerFilter === 'all' || c.partnershipManager === partnershipManagerFilter;
       const matchesMin = minBrokers === '' || c.brokerCount >= parseInt(minBrokers);
@@ -143,18 +145,25 @@ const App: React.FC = () => {
       
       const matchesContactType = contactTypeFilter === 'all' || c.lastContactType === contactTypeFilter;
 
-      return matchesName && matchesCnpj && matchesStatus && matchesManager && matchesMin && matchesMax && matchesCreci && matchesCreciUf && matchesContactType;
+      return matchesName && matchesCnpj && matchesCep && matchesStatus && matchesManager && matchesMin && matchesMax && matchesCreci && matchesCreciUf && matchesContactType;
     });
-  }, [companies, nameFilter, cnpjFilter, statusFilter, partnershipManagerFilter, minBrokers, maxBrokers, creciFilter, creciUfFilter, contactTypeFilter]);
+  }, [companies, nameFilter, cnpjFilter, cepFilter, statusFilter, partnershipManagerFilter, minBrokers, maxBrokers, creciFilter, creciUfFilter, contactTypeFilter]);
 
   const handleSaveCompany = (data: Omit<Company, 'id' | 'registrationDate'>) => {
-    if (editingCompany) {
+    if (editingCompany && editingCompany.id) {
       setCompanies(companies.map(c => c.id === editingCompany.id ? { ...c, ...data } : c));
     } else {
       setCompanies([{ ...data, id: Math.random().toString(36).substr(2, 9), registrationDate: new Date().toISOString().split('T')[0] }, ...companies]);
     }
     if (isPublicMode) setRegistrationSuccess(true);
     else { setShowForm(false); setEditingCompany(undefined); }
+  };
+
+  const handleUpdateCompany = (updated: Company) => {
+    setCompanies(companies.map(c => c.id === updated.id ? updated : c));
+    if (selectedCompanyForDetails?.id === updated.id) {
+      setSelectedCompanyForDetails(updated);
+    }
   };
 
   const handleEdit = (c: Company) => { setEditingCompany(c); setShowForm(true); setActiveTab('companies'); };
@@ -189,6 +198,7 @@ const App: React.FC = () => {
   const handleClearFilters = () => {
     setNameFilter('');
     setCnpjFilter('');
+    setCepFilter('');
     setStatusFilter('all');
     setPartnershipManagerFilter('all');
     setMinBrokers('');
@@ -204,12 +214,13 @@ const App: React.FC = () => {
       return;
     }
 
-    const headers = ["Nome da Empresa", "CNPJ/CPF", "Telefone", "Status", "Gestor da Parceria", "CRECI", "UF CRECI", "Último Contato", "Data Registro", "Equipe"];
+    const headers = ["Nome da Empresa", "CNPJ/CPF", "CEP", "Telefone", "Status", "Gestor da Parceria", "CRECI", "UF CRECI", "Último Contato", "Data Registro", "Equipe"];
     const csvContent = filteredCompanies.map(c => {
       const creciValue = c.creci || (c.docType === 'CRECI' ? c.cnpj : '');
       return [
         `"${c.name.replace(/"/g, '""')}"`,
         `"${c.cnpj}"`,
+        `"${c.cep || ''}"`,
         `"${c.phone}"`,
         `"${c.status}"`,
         `"${(c.partnershipManager || '').replace(/"/g, '""')}"`,
@@ -397,7 +408,7 @@ const App: React.FC = () => {
                     </div>
 
                     {/* Filtros Secundários */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-4 border-t border-slate-50">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 pt-4 border-t border-slate-50">
                       <div className="space-y-1.5">
                         <label className="text-[10px] font-black uppercase text-slate-400 ml-1">CNPJ / CPF</label>
                         <input 
@@ -406,6 +417,17 @@ const App: React.FC = () => {
                           className="w-full p-2.5 bg-slate-50 border border-slate-100 rounded-xl text-xs font-bold text-slate-600 outline-none"
                           value={cnpjFilter}
                           onChange={e => setCnpjFilter(e.target.value)}
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-black uppercase text-blue-600 ml-1">CEP</label>
+                        <input 
+                          type="text" 
+                          placeholder="Ex: 01310-100" 
+                          className="w-full p-2.5 bg-blue-50/30 border border-blue-100 rounded-xl text-xs font-bold text-blue-900 outline-none focus:ring-2 focus:ring-blue-500"
+                          value={cepFilter}
+                          onChange={e => setCepFilter(e.target.value)}
                         />
                       </div>
 
@@ -472,7 +494,7 @@ const App: React.FC = () => {
                   <thead className="bg-slate-50 border-b">
                     <tr className="text-xs font-bold text-slate-400 uppercase tracking-widest">
                       <th className="px-6 py-4">Parceiro / Identificação</th>
-                      <th className="px-6 py-4">Relacionamento</th>
+                      <th className="px-6 py-4">Responsáveis (Hub / Externo)</th>
                       <th className="px-6 py-4">Status</th>
                       <th className="px-6 py-4 text-center">Equipe</th>
                       <th className="px-6 py-4 text-right">Ações</th>
@@ -483,20 +505,27 @@ const App: React.FC = () => {
                       <tr key={c.id} className="hover:bg-slate-50 transition-colors">
                         <td className="px-6 py-4">
                           <p className="font-bold text-slate-800">{c.name}</p>
-                          <p className="text-[10px] text-slate-400 font-mono">
-                            {c.docType === 'CRECI' 
-                              ? `CRECI: ${c.cnpj} / ${c.creciUF}` 
-                              : `${c.docType}: ${c.cnpj}`}
-                          </p>
+                          <div className="flex flex-col gap-0.5">
+                            <p className="text-[10px] text-slate-400 font-mono">
+                              {c.docType === 'CRECI' 
+                                ? `CRECI: ${c.cnpj} / ${c.creciUF}` 
+                                : `${c.docType}: ${c.cnpj}`}
+                            </p>
+                            {c.cep && <p className="text-[9px] text-blue-500 font-bold">CEP: {c.cep}</p>}
+                          </div>
                         </td>
                         <td className="px-6 py-4">
-                          <p className="text-[10px] font-bold text-slate-500 uppercase">Gestor Hub / Últ. Contato</p>
+                          <p className="text-[10px] font-black text-blue-600 uppercase">Hub: {c.hiringManager}</p>
                           <p className="text-xs font-medium text-slate-700">{c.partnershipManager || 'N/A'}</p>
-                          <p className="text-[10px] text-emerald-600 font-bold">{c.lastContactType ? `Última interação: ${c.lastContactType}` : 'Sem histórico'}</p>
+                          <p className="text-[10px] text-emerald-600 font-bold">{c.lastContactType ? `Última: ${c.lastContactType}` : 'Sem histórico'}</p>
                         </td>
                         <td className="px-6 py-4">
-                          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider ${c.status === 'Ativo' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>
-                            <span className={`w-1.5 h-1.5 rounded-full ${c.status === 'Ativo' ? 'bg-green-500' : 'bg-slate-400'}`}></span>
+                          <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider shadow-sm transition-all ${c.status === 'Ativo' ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-slate-100 text-slate-500 border border-slate-200'}`}>
+                            {c.status === 'Ativo' ? (
+                              <span className="text-sm">✅</span>
+                            ) : (
+                              <span className="text-sm">⏸️</span>
+                            )}
                             {c.status}
                           </span>
                         </td>
@@ -531,7 +560,7 @@ const App: React.FC = () => {
       {activeTab === 'map' && <InteractiveMap companies={companies} />}
       {activeTab === 'reports' && <ReportsView companies={companies} onEdit={handleEdit} onDelete={(id) => setCompanyToDelete(companies.find(c => c.id === id) || null)} onView={setSelectedCompanyForDetails} />}
       
-      {selectedCompanyForDetails && <CompanyDetailsModal company={selectedCompanyForDetails} onClose={() => setSelectedCompanyForDetails(null)} />}
+      {selectedCompanyForDetails && <CompanyDetailsModal company={selectedCompanyForDetails} onClose={() => setSelectedCompanyForDetails(null)} onUpdate={handleUpdateCompany} />}
       {companyToDelete && <DeleteConfirmationModal company={companyToDelete} onConfirm={() => { setCompanies(companies.filter(x => x.id !== companyToDelete.id)); setCompanyToDelete(null); }} onCancel={() => setCompanyToDelete(null)} />}
       {showShareModal && <ShareLinkModal url={publicRegistrationUrl} onClose={() => setShowShareModal(false)} />}
     </Layout>

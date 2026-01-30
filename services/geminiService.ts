@@ -4,6 +4,23 @@ import { Company } from "../types";
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
+/**
+ * Consulta dados da empresa via BrasilAPI (CNPJ)
+ */
+export const fetchCompanyByCNPJ = async (cnpj: string) => {
+  const cleanCnpj = cnpj.replace(/\D/g, '');
+  if (cleanCnpj.length !== 14) return null;
+
+  try {
+    const response = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cleanCnpj}`);
+    if (!response.ok) return null;
+    return await response.json();
+  } catch (error) {
+    console.error("Erro ao buscar CNPJ:", error);
+    return null;
+  }
+};
+
 export const getAIInsights = async (companies: Company[]) => {
   if (companies.length === 0) return "Adicione empresas para obter insights da IA.";
 
@@ -32,17 +49,18 @@ export const getAIInsights = async (companies: Company[]) => {
   }
 };
 
-export const searchOnlineCompanies = async (region: string, userCoords?: { latitude: number, longitude: number }) => {
-  const prompt = `Realize uma busca exaustiva por empresas imobiliárias na região de ${region}. 
+export const searchOnlineCompanies = async (regionOrName: string, userCoords?: { latitude: number, longitude: number }) => {
+  const prompt = `Realize uma busca exaustiva por empresas imobiliárias. O termo de busca fornecido é: "${regionOrName}". 
+  Este termo pode ser uma região geográfica ou o nome de uma imobiliária específica.
+  
   Para cada empresa encontrada, você DEVE retornar obrigatoriamente:
-  1. Nome da Imobiliária
-  2. Endereço Completo
-  3. Telefone de Contato (e WhatsApp se disponível)
+  1. Nome da Imobiliária (Sem prefixos como 'Imobiliária X')
+  2. Endereço Completo (FORMATO OBRIGATÓRIO: Logradouro, Número - Bairro - Cidade/UF)
+  3. Telefone de Contato
   4. Website (se houver)
   
-  Formate cada empresa em uma linha seguindo EXATAMENTE o padrão: "Nome da Empresa | Endereço | Telefone: (00) 00000-0000 | Website: url".
-  Se não houver website, coloque Website: N/A.
-  Priorize imobiliárias ativas e com presença digital.`;
+  Formate cada empresa em uma única linha seguindo o padrão: "NOME | LOGRADOURO, NUMERO - BAIRRO - CIDADE/UF | Telefone: (00) 00000-0000 | Website: url".
+  Se o termo for um nome de empresa, retorne todas as unidades ou informações detalhadas dessa empresa específica.`;
 
   try {
     const response = await ai.models.generateContent({
@@ -72,15 +90,14 @@ export const searchOnlineCompanies = async (region: string, userCoords?: { latit
 };
 
 export const searchOnlineBrokers = async (region: string) => {
-  const prompt = `Localize corretores de imóveis autônomos ou profissionais de destaque na região de ${region}. 
-  Para cada profissional encontrado, tente retornar:
-  1. Nome Completo do Corretor
-  2. Número do CRECI (se disponível publicamente)
-  3. Área de atuação ou especialidade
-  4. Telefone de Contato
+  const prompt = `Localize corretores de imóveis autônomos na região de ${region}. 
+  Para cada profissional encontrado, você DEVE retornar:
+  1. Nome Completo
+  2. Endereço ou Área de Atuação (FORMATO: Rua, Número ou 'Atendimento Local' - Bairro - Cidade/UF)
+  3. Telefone de Contato
+  4. Número do CRECI (Se houver)
   
-  Formate cada resultado em uma linha seguindo o padrão: "Nome do Corretor (CRECI: 0000) - Especialidade - Telefone: (00) 00000-0000".
-  Se o CRECI não for encontrado, coloque (CRECI: N/A).`;
+  Formate cada resultado em uma única linha: "NOME | ENDEREÇO | Telefone: (00) 00000-0000 | CRECI: 00000".`;
 
   try {
     const response = await ai.models.generateContent({
@@ -106,12 +123,9 @@ export const searchOnlineBrokers = async (region: string) => {
 
 export const searchByPhone = async (phoneNumber: string) => {
   const prompt = `IDENTIFICAÇÃO REVERSA: Quem é o proprietário do telefone ${phoneNumber}? 
-  Foque exclusivamente no mercado imobiliário. Verifique portais como ZAP, VivaReal, redes sociais e registros de empresas.
+  Foque exclusivamente no mercado imobiliário. 
   
-  Se encontrar uma imobiliária ou corretor associado, responda EXATAMENTE neste formato em uma única linha:
-  "Nome da Imobiliária ou Corretor - Endereço Completo (se disponível) - Telefone: ${phoneNumber}"
-  
-  Caso seja um corretor individual, adicione o CRECI se possível no nome. Se não encontrar nada relacionado ao mercado imobiliário, informe que o número não possui registros públicos neste setor.`;
+  Retorne no formato: "NOME | ENDEREÇO (Logradouro, Número - Bairro - Cidade/UF) | Telefone: ${phoneNumber}"`;
 
   try {
     const response = await ai.models.generateContent({
@@ -136,15 +150,8 @@ export const searchByPhone = async (phoneNumber: string) => {
 };
 
 export const searchByEmail = async (email: string) => {
-  const prompt = `Identifique a empresa imobiliária associada ao endereço de e-mail: ${email}.
-  Retorne as seguintes informações se encontradas publicamente:
-  1. Nome da Imobiliária (Razão Social ou Nome Fantasia)
-  2. Endereço Completo da sede
-  3. Telefone de Contato Principal
-  4. Website ou domínio associado ao e-mail
-  
-  Formate o resultado principal em uma única linha como: "Nome da Empresa - Endereço - Telefone: (00) 00000-0000".
-  Se houver mais informações relevantes sobre o porte da empresa, adicione abaixo.`;
+  const prompt = `Identifique a empresa imobiliária associada ao e-mail: ${email}.
+  Retorne no formato: "NOME | ENDEREÇO (Logradouro, Número - Bairro - Cidade/UF) | Telefone: (00) 00000-0000"`;
 
   try {
     const response = await ai.models.generateContent({

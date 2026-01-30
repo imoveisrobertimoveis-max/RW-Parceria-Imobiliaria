@@ -1,13 +1,22 @@
 
-import React from 'react';
-import { Company } from '../types';
+import React, { useState } from 'react';
+import { Company, ContactHistoryEntry } from '../types';
 
 interface CompanyDetailsModalProps {
   company: Company;
   onClose: () => void;
+  onUpdate?: (updated: Company) => void;
 }
 
-export const CompanyDetailsModal: React.FC<CompanyDetailsModalProps> = ({ company, onClose }) => {
+export const CompanyDetailsModal: React.FC<CompanyDetailsModalProps> = ({ company, onClose, onUpdate }) => {
+  const [isAddingInteraction, setIsAddingInteraction] = useState(false);
+  const [newInteraction, setNewInteraction] = useState<Partial<ContactHistoryEntry>>({
+    type: 'Telefone',
+    summary: '',
+    details: '',
+    date: new Date().toISOString().split('T')[0]
+  });
+
   const isUpcoming = (dateStr?: string) => {
     if (!dateStr) return false;
     const today = new Date();
@@ -30,6 +39,43 @@ export const CompanyDetailsModal: React.FC<CompanyDetailsModalProps> = ({ compan
     }
   };
 
+  const handleAddInteraction = () => {
+    if (!newInteraction.summary || !newInteraction.type || !newInteraction.date) {
+      alert("Por favor, preencha pelo menos o resumo, tipo e data da interação.");
+      return;
+    }
+
+    const entry: ContactHistoryEntry = {
+      id: Math.random().toString(36).substr(2, 9),
+      date: newInteraction.date!,
+      type: newInteraction.type as any,
+      summary: newInteraction.summary!,
+      details: newInteraction.details,
+      nextContactDate: newInteraction.nextContactDate
+    };
+
+    const updatedCompany: Company = {
+      ...company,
+      contactHistory: [entry, ...(company.contactHistory || [])],
+      lastContactDate: entry.date,
+      lastContactType: entry.type,
+      contactSummary: entry.summary,
+      nextContactDate: entry.nextContactDate || company.nextContactDate
+    };
+
+    if (onUpdate) {
+      onUpdate(updatedCompany);
+    }
+
+    setIsAddingInteraction(false);
+    setNewInteraction({
+      type: 'Telefone',
+      summary: '',
+      details: '',
+      date: new Date().toISOString().split('T')[0]
+    });
+  };
+
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
       <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden border border-slate-200 flex flex-col max-h-[90vh]">
@@ -49,8 +95,11 @@ export const CompanyDetailsModal: React.FC<CompanyDetailsModalProps> = ({ compan
                   ? `CRECI JURÍDICO ${company.creci} / ${company.creciUF}` 
                   : `${company.docType}: ${company.cnpj}`}
               </p>
-              <div className="flex gap-2 mt-3">
-                <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest ${company.status === 'Ativo' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>{company.status}</span>
+              <div className="flex items-center gap-2 mt-3">
+                <span className={`flex items-center gap-2 px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-widest border ${company.status === 'Ativo' ? 'bg-green-100 text-green-700 border-green-200' : 'bg-slate-100 text-slate-500 border-slate-200'}`}>
+                  {company.status === 'Ativo' ? "✅" : "⏸️"}
+                  {company.status}
+                </span>
                 <span className="px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest bg-blue-100 text-blue-700">{company.commissionRate}% Comissão</span>
                 <span className="px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest bg-amber-100 text-amber-700">{company.brokerCount} Corretores</span>
               </div>
@@ -96,8 +145,94 @@ export const CompanyDetailsModal: React.FC<CompanyDetailsModalProps> = ({ compan
 
           {/* Timeline */}
           <div className="space-y-4">
-            <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-2">Histórico de Relacionamento</h5>
+            <div className="flex justify-between items-center border-b border-slate-100 pb-2">
+              <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Linha do Tempo de Relacionamento</h5>
+              {!isAddingInteraction && (
+                <button 
+                  onClick={() => setIsAddingInteraction(true)}
+                  className="text-[10px] font-black text-blue-600 hover:text-blue-700 uppercase tracking-widest flex items-center gap-1 transition-all"
+                >
+                  <span className="text-base">+</span> Adicionar Nova Interação
+                </button>
+              )}
+            </div>
             
+            {isAddingInteraction && (
+              <div className="bg-blue-50/50 p-6 rounded-2xl border border-blue-100 shadow-sm animate-slideDown space-y-4">
+                <div className="flex justify-between items-center">
+                  <h6 className="text-[10px] font-black text-blue-700 uppercase tracking-widest">Nova Entrada no Histórico</h6>
+                  <button onClick={() => setIsAddingInteraction(false)} className="text-slate-400 hover:text-red-500 text-lg">×</button>
+                </div>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-black text-slate-400 uppercase ml-1">Tipo</label>
+                    <select 
+                      className="w-full p-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-blue-500"
+                      value={newInteraction.type}
+                      onChange={e => setNewInteraction({...newInteraction, type: e.target.value as any})}
+                    >
+                      <option value="Telefone">📞 Telefone</option>
+                      <option value="WhatsApp">💬 WhatsApp</option>
+                      <option value="E-mail">📧 E-mail</option>
+                      <option value="Reunião">🤝 Reunião</option>
+                      <option value="Vídeo">🎥 Vídeo</option>
+                      <option value="Visita">🏠 Visita</option>
+                      <option value="Evento">🎟️ Evento</option>
+                      <option value="Outros">⚙️ Outros</option>
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-black text-slate-400 uppercase ml-1">Data</label>
+                    <input 
+                      type="date"
+                      className="w-full p-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-blue-500"
+                      value={newInteraction.date}
+                      onChange={e => setNewInteraction({...newInteraction, date: e.target.value})}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black text-slate-400 uppercase ml-1">Resumo Curto</label>
+                  <input 
+                    type="text"
+                    placeholder="Ex: Alinhamento de comissão"
+                    className="w-full p-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-blue-500"
+                    value={newInteraction.summary}
+                    onChange={e => setNewInteraction({...newInteraction, summary: e.target.value})}
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black text-slate-400 uppercase ml-1">Notas Detalhadas</label>
+                  <textarea 
+                    placeholder="Descreva o que foi conversado..."
+                    className="w-full p-2.5 bg-white border border-slate-200 rounded-xl text-xs font-medium outline-none focus:ring-2 focus:ring-blue-500 h-20 resize-none"
+                    value={newInteraction.details}
+                    onChange={e => setNewInteraction({...newInteraction, details: e.target.value})}
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black text-slate-400 uppercase ml-1">Próximo Contato (Opcional)</label>
+                  <input 
+                    type="date"
+                    className="w-full p-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-blue-500"
+                    value={newInteraction.nextContactDate || ''}
+                    onChange={e => setNewInteraction({...newInteraction, nextContactDate: e.target.value})}
+                  />
+                </div>
+
+                <button 
+                  onClick={handleAddInteraction}
+                  className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold text-[11px] uppercase tracking-widest shadow-lg shadow-blue-100 hover:bg-blue-700 transition-all active:scale-[0.98]"
+                >
+                  Registrar Interação ✓
+                </button>
+              </div>
+            )}
+
             <div className="space-y-6 relative ml-4 before:absolute before:left-0 before:top-2 before:bottom-2 before:w-[1px] before:bg-slate-100">
               {company.contactHistory && company.contactHistory.length > 0 ? (
                 company.contactHistory.map((h, i) => (

@@ -14,8 +14,11 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({ companies }) => 
   const [searchTerm, setSearchTerm] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [viewShared, setViewShared] = useState(false);
+  const [viewReset, setViewReset] = useState(false);
 
   const MAP_VIEW_KEY = 'partner_hub_map_view_v2';
+  const DEFAULT_CENTER: L.LatLngExpression = [-23.5505, -46.6333];
+  const DEFAULT_ZOOM = 12;
 
   // Função para criar o ícone personalizado ultra-refinado
   const createCustomIcon = (company: Company) => {
@@ -74,14 +77,38 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({ companies }) => 
     setTimeout(() => setViewShared(false), 3000);
   };
 
+  const handleClearSavedView = () => {
+    localStorage.removeItem(MAP_VIEW_KEY);
+    
+    // Remove params da URL sem recarregar a página
+    const url = new URL(window.location.href);
+    url.searchParams.delete('lat');
+    url.searchParams.delete('lng');
+    url.searchParams.delete('zoom');
+    window.history.replaceState({}, '', url.toString());
+
+    if (mapRef.current) {
+      if (companies.length > 0) {
+        const markers = Array.from(markersRef.current.values());
+        const group = L.featureGroup(markers);
+        mapRef.current.fitBounds(group.getBounds().pad(0.2));
+      } else {
+        mapRef.current.setView(DEFAULT_CENTER, DEFAULT_ZOOM);
+      }
+    }
+
+    setViewReset(true);
+    setTimeout(() => setViewReset(false), 2000);
+  };
+
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) return;
 
     const urlParams = new URLSearchParams(window.location.search);
     const savedViewStr = localStorage.getItem(MAP_VIEW_KEY);
     
-    let initialCenter: L.LatLngExpression = [-23.5505, -46.6333];
-    let initialZoom = 12;
+    let initialCenter = DEFAULT_CENTER;
+    let initialZoom = DEFAULT_ZOOM;
 
     const urlLat = urlParams.get('lat');
     const urlLng = urlParams.get('lng');
@@ -219,8 +246,9 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({ companies }) => 
         </form>
       </div>
 
-      {/* Share View Action */}
-      <div className="absolute top-6 right-6 z-[1000]">
+      {/* Map Actions Area */}
+      <div className="absolute top-6 right-6 z-[1000] flex flex-col items-end gap-3">
+        {/* Share View Action */}
         <button 
           onClick={handleShareView}
           className={`group flex items-center gap-3 px-6 py-3.5 rounded-2xl shadow-2xl border transition-all active:scale-95 ${viewShared ? 'bg-emerald-600 border-emerald-400 text-white animate-bounce' : 'bg-white border-slate-200 text-slate-700 hover:border-blue-500 hover:text-blue-600'}`}
@@ -228,6 +256,18 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({ companies }) => 
           <span className="text-xl">{viewShared ? '✅' : '🔗'}</span>
           <span className="text-xs font-black uppercase tracking-widest">
             {viewShared ? 'Link Copiado!' : 'Compartilhar Visualização'}
+          </span>
+        </button>
+
+        {/* Clear/Reset View Action */}
+        <button 
+          onClick={handleClearSavedView}
+          className={`group flex items-center gap-3 px-4 py-3 rounded-2xl shadow-xl border transition-all active:scale-95 ${viewReset ? 'bg-amber-500 border-amber-400 text-white' : 'bg-white/80 backdrop-blur-sm border-slate-100 text-slate-500 hover:bg-white hover:text-amber-600 hover:border-amber-200'}`}
+          title="Resetar visualização para o padrão"
+        >
+          <span className="text-lg">{viewReset ? '🔄' : '🗑️'}</span>
+          <span className="text-[10px] font-black uppercase tracking-widest">
+            {viewReset ? 'Visão Resetada' : 'Limpar Cache de Visão'}
           </span>
         </button>
       </div>
