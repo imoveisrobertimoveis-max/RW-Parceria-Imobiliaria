@@ -174,10 +174,13 @@ const App: React.FC = () => {
   return (
     <Layout activeTab={activeTab} setActiveTab={setActiveTab} companies={companies} upcomingContacts={upcomingContacts}>
       {/* Botão Flutuante de Ajuda - O Caminho */}
-      <div className="fixed bottom-10 right-10 z-[100] no-print">
+      <div className="fixed bottom-10 right-10 z-[100] no-print flex flex-col gap-4">
+        <div className="bg-white px-4 py-2 rounded-2xl shadow-xl border border-slate-200 text-[10px] font-black uppercase tracking-widest text-slate-400 animate-bounce">
+           Dados salvos localmente no seu PC 💻
+        </div>
         <button 
           onClick={() => setShowInstallGuide(true)}
-          className="w-16 h-16 bg-blue-600 text-white rounded-full flex items-center justify-center text-2xl shadow-2xl hover:bg-slate-900 hover:scale-110 transition-all active:scale-95 border-4 border-white"
+          className="w-16 h-16 bg-blue-600 text-white rounded-full flex items-center justify-center text-2xl shadow-2xl hover:bg-slate-900 hover:scale-110 transition-all active:scale-95 border-4 border-white self-end"
           title="Manual do Caminho"
         >
           🛤️
@@ -187,7 +190,7 @@ const App: React.FC = () => {
       {showInstallGuide && (
         <div className="fixed inset-0 z-[200] bg-slate-900/90 backdrop-blur-xl flex items-center justify-center p-6 animate-fadeIn">
           <div className="bg-white w-full max-w-3xl rounded-[4rem] shadow-2xl overflow-hidden border border-slate-200 animate-slideUp relative">
-             <div className="p-12 space-y-10">
+             <div className="p-12 space-y-10 overflow-y-auto max-h-[90vh]">
                 <div className="flex justify-between items-center">
                   <div className="space-y-1">
                     <h3 className="text-4xl font-black text-slate-900 tracking-tighter">O Caminho da Instalação</h3>
@@ -203,7 +206,7 @@ const App: React.FC = () => {
                       <div className="space-y-2 pt-2">
                         <h5 className="font-black text-slate-900 text-lg">Instale o Motor (Node.js)</h5>
                         <p className="text-sm text-slate-500 font-medium leading-relaxed">
-                          O sistema precisa do motor **Node.js**. Se você abriu o `instalar_windows.bat` e ele abriu um site, baixe e instale aquele arquivo primeiro. 
+                          O sistema precisa do motor **Node.js**. Baixe e instale a versão **LTS**. 
                           <span className="block mt-1 text-blue-600 font-bold">Importante: Reinicie o PC após instalar!</span>
                         </p>
                       </div>
@@ -215,39 +218,32 @@ const App: React.FC = () => {
                       <div className="space-y-2 pt-2">
                         <h5 className="font-black text-slate-900 text-lg">O Instalador Automático</h5>
                         <p className="text-sm text-slate-500 font-medium leading-relaxed">
-                          Com o PC reiniciado, clique com o botão direito no arquivo **`instalar_windows.bat`** e escolha "Executar como Administrador". Uma tela preta aparecerá e configurará tudo sozinha.
+                          Com o PC reiniciado, clique duas vezes no arquivo **`instalar_windows.bat`**. Uma tela preta aparecerá.
                         </p>
                       </div>
                    </div>
 
                    {/* Passo 3 */}
                    <div className="relative flex gap-10 items-start group">
-                      <div className="w-14 h-14 bg-emerald-600 text-white rounded-2xl flex items-center justify-center font-black text-xl flex-shrink-0 z-10 shadow-xl group-hover:bg-emerald-700 transition-all">3</div>
+                      <div className="w-14 h-14 bg-red-600 text-white rounded-2xl flex items-center justify-center font-black text-xl flex-shrink-0 z-10 shadow-xl transition-all">🆘</div>
                       <div className="space-y-2 pt-2">
-                        <h5 className="font-black text-slate-900 text-lg">Acesso ao CRM</h5>
+                        <h5 className="font-black text-slate-900 text-lg">Se a Tela Preta "Travar"</h5>
                         <p className="text-sm text-slate-500 font-medium leading-relaxed">
-                          Assim que a tela preta terminar, seu navegador (Chrome ou Edge) abrirá automaticamente com o PartnerHub. **Não feche a tela preta** enquanto estiver usando o CRM.
+                          Se o terminal mostrar erros em vermelho, verifique se você tem **internet ativa** e se não há um Antivírus bloqueando a criação da pasta `node_modules`. Tente executar como Administrador.
                         </p>
                       </div>
                    </div>
 
                    {/* Passo 4 */}
                    <div className="relative flex gap-10 items-start group">
-                      <div className="w-14 h-14 bg-amber-500 text-white rounded-2xl flex items-center justify-center font-black text-xl flex-shrink-0 z-10 shadow-xl group-hover:bg-amber-600 transition-all">4</div>
+                      <div className="w-14 h-14 bg-amber-500 text-white rounded-2xl flex items-center justify-center font-black text-xl flex-shrink-0 z-10 shadow-xl group-hover:bg-amber-600 transition-all">💾</div>
                       <div className="space-y-2 pt-2">
-                        <h5 className="font-black text-slate-900 text-lg">Segurança de Dados (Cofre)</h5>
+                        <h5 className="font-black text-slate-900 text-lg">Segurança de Dados</h5>
                         <p className="text-sm text-slate-500 font-medium leading-relaxed">
                           Sempre que cadastrar novas empresas, vá na aba **Central de BI** e clique em **"Baixar Pack de Códigos"**. Isso garante que você nunca perca seu trabalho.
                         </p>
                       </div>
                    </div>
-                </div>
-
-                <div className="bg-slate-50 p-8 rounded-3xl border border-slate-100 flex items-center gap-6">
-                   <span className="text-4xl">💡</span>
-                   <p className="text-xs text-slate-500 font-medium leading-relaxed">
-                     **Dica de mestre:** Se o Windows disser "O computador foi protegido", clique em **"Mais informações"** e depois em **"Executar assim mesmo"**. O sistema é totalmente seguro.
-                   </p>
                 </div>
 
                 <button 
