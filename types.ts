@@ -4,7 +4,7 @@ export interface ContactHistoryEntry {
   date: string;
   type: 'Telefone' | 'WhatsApp' | 'E-mail' | 'Reunião' | 'Vídeo' | 'Visita' | 'Evento' | 'Outros';
   summary: string;
-  details?: string; // Notas detalhadas sobre a interação
+  details?: string;
   nextContactDate?: string;
 }
 
@@ -18,7 +18,8 @@ export interface Broker {
 
 export interface Company {
   id: string;
-  name: string;
+  name: string; // Nome Fantasia ou Nome Curto
+  razaoSocial?: string;
   cnpj: string; 
   creci?: string;
   creciUF?: string;
@@ -30,8 +31,8 @@ export interface Company {
     lng: number;
   };
   responsible: string;
-  partnershipManager: string; // Gestor estratégico no parceiro
-  hiringManager: string; // Gestor interno (Hub)
+  partnershipManager: string;
+  hiringManager: string;
   website?: string;
   email: string;
   phone: string;
@@ -39,15 +40,12 @@ export interface Company {
   brokerCount: number;
   commissionRate: number;
   status: 'Ativo' | 'Inativo';
-  // Relationship history (Legacy/Quick Access)
   lastContactDate?: string;
-  lastContactType?: 'Telefone' | 'WhatsApp' | 'E-mail' | 'Reunião' | 'Vídeo' | 'Visita' | 'Evento' | 'Outros';
+  lastContactType?: string;
   contactSummary?: string;
   nextContactDate?: string;
   notes?: string;
-  // Full History
   contactHistory: ContactHistoryEntry[];
-  // Associated Brokers
   brokers: Broker[];
 }
 

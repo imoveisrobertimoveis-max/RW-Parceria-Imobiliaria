@@ -1,12 +1,12 @@
 
 import React, { useState, useEffect } from 'react';
-import { searchOnlineBrokers, searchOnlineCompanies, searchByPhone, searchByEmail } from '../services/geminiService';
+import { searchOnlineBrokers, searchOnlineCompanies, searchByPhone, searchByEmail, searchByWebsite } from '../services/geminiService';
 
 interface ProspectingViewProps {
   onImport: (companyData: { name: string; address: string; phone: string; creci?: string; docType?: 'CNPJ' | 'CPF' | 'CRECI'; website?: string }) => void;
 }
 
-type SearchType = 'region' | 'phone' | 'broker' | 'email' | 'name';
+type SearchType = 'region' | 'phone' | 'broker' | 'email' | 'name' | 'website';
 
 export const ProspectingView: React.FC<ProspectingViewProps> = ({ onImport }) => {
   const [query, setQuery] = useState('');
@@ -14,6 +14,7 @@ export const ProspectingView: React.FC<ProspectingViewProps> = ({ onImport }) =>
   const [brokerQuery, setBrokerQuery] = useState('');
   const [phoneQuery, setPhoneQuery] = useState('');
   const [emailQuery, setEmailQuery] = useState('');
+  const [websiteQuery, setWebsiteQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [currentSearchType, setCurrentSearchType] = useState<SearchType>('region');
   const [results, setResults] = useState<{ text: string; sources: any[] } | null>(null);
@@ -55,15 +56,14 @@ export const ProspectingView: React.FC<ProspectingViewProps> = ({ onImport }) =>
 
     const isBroker = data.creci !== "" || currentSearchType === 'broker' || data.name.toLowerCase().includes('corretor');
     const hasAddress = data.address && data.address !== "Endereço não identificado";
-    const isCompany = !isBroker && hasAddress;
-
+    
     let message = "";
     if (isBroker) {
-      message = `Olá ${data.name}, vi seu perfil profissional e gostaria de entender melhor sobre parcerias.`;
-    } else if (isCompany) {
+      message = `Olá ${data.name}, vi seu perfil profissional e gostaria de entender melhor sobre parcerias estratégicas.`;
+    } else if (hasAddress) {
       message = `Olá ${data.name}, vi sua atuação em ${data.address} e gostaria de conversar sobre uma possível parceria estratégica com o PartnerHub.`;
     } else {
-      message = "Olá, gostaria de informações sobre parcerias.";
+      message = "Olá, gostaria de informações sobre parcerias estratégicas.";
     }
     
     const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
@@ -77,7 +77,7 @@ export const ProspectingView: React.FC<ProspectingViewProps> = ({ onImport }) =>
     setResults(null); 
     setCurrentSearchType(type);
     
-    if (searchQuery && (type === 'region' || type === 'name')) saveQuery(searchQuery);
+    if (searchQuery && (type === 'region' || type === 'name' || type === 'website')) saveQuery(searchQuery);
     
     try {
       let res;
@@ -109,6 +109,9 @@ export const ProspectingView: React.FC<ProspectingViewProps> = ({ onImport }) =>
           break;
         case 'name':
           res = await searchOnlineCompanies(searchQuery, coords);
+          break;
+        case 'website':
+          res = await searchByWebsite(searchQuery);
           break;
         default:
           res = await searchOnlineCompanies(searchQuery, coords);
@@ -184,67 +187,31 @@ export const ProspectingView: React.FC<ProspectingViewProps> = ({ onImport }) =>
 
   return (
     <div className="max-w-7xl mx-auto space-y-10 animate-fadeIn pb-20">
-      <div className="bg-white p-10 rounded-[2.5rem] border border-slate-200 shadow-2xl shadow-blue-900/5 space-y-8">
+      <div className="bg-white p-12 rounded-[3rem] border border-slate-200 shadow-2xl shadow-blue-900/5 space-y-10">
         <div className="text-center space-y-4">
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-indigo-50 text-indigo-700 rounded-full text-[10px] font-black uppercase tracking-widest">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-indigo-50 text-indigo-700 rounded-full text-[10px] font-black uppercase tracking-[0.2em] border border-indigo-100">
             <span className="w-2 h-2 bg-indigo-500 rounded-full animate-pulse"></span>
-            Mapeamento de Mercado IA
+            Inteligência de Mercado Ativa
           </div>
-          <h2 className="text-4xl font-black text-slate-900 tracking-tight">Expandir Rede em Larga Escala</h2>
-          <p className="text-slate-500 max-w-lg mx-auto text-sm">Utilize nossa IA para varrer portais e redes em busca das melhores imobiliárias e corretores autônomos.</p>
+          <h2 className="text-5xl font-black text-slate-900 tracking-tight">Expansão de Rede</h2>
+          <p className="text-slate-500 max-w-2xl mx-auto text-base font-medium">Capture leads imobiliários e parceiros estratégicos em tempo real utilizando processamento de linguagem natural e geolocalização.</p>
         </div>
 
-        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-slate-50 p-7 rounded-[2.5rem] border border-slate-200 space-y-5 shadow-sm hover:border-blue-400 transition-all group">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center text-2xl shadow-sm group-hover:bg-blue-600 group-hover:text-white transition-all">📍</div>
-                <div>
-                  <h4 className="text-xs font-black uppercase tracking-widest text-slate-400">Por Região</h4>
-                  <p className="text-[10px] text-slate-500 font-medium">Foco em bairros e cidades.</p>
-                </div>
-              </div>
-              <button 
-                onClick={() => performSearch("", "region", true)}
-                disabled={loading}
-                className="p-2.5 bg-white border border-slate-200 text-blue-600 rounded-xl hover:bg-blue-50 transition-colors shadow-sm"
-                title="Buscar perto de mim"
-              >
-                📍
-              </button>
-            </div>
-            <form onSubmit={(e) => { e.preventDefault(); performSearch(query, 'region'); }} className="space-y-3">
-              <input 
-                type="text" 
-                placeholder="Ex: Pinheiros, São Paulo..." 
-                className="w-full h-14 px-5 bg-white border border-slate-200 rounded-2xl outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all text-sm font-bold shadow-inner"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                disabled={loading}
-              />
-              <button 
-                type="submit" 
-                disabled={loading || !query}
-                className="w-full h-14 bg-blue-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-blue-100 hover:bg-blue-700 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-              >
-                {loading && currentSearchType === 'region' ? 'Varrendo Região...' : 'Escanear Região'}
-              </button>
-            </form>
-          </div>
-
-          <div className="bg-indigo-50/50 p-7 rounded-[2.5rem] border border-indigo-100 space-y-5 shadow-sm hover:border-indigo-400 transition-all group ring-1 ring-indigo-50">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-2xl flex items-center justify-center text-2xl shadow-sm group-hover:bg-indigo-600 group-hover:text-white transition-all">🏢</div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {/* Busca por Nome (Destaque conforme pedido) */}
+          <div className="bg-indigo-50/50 p-8 rounded-[2.5rem] border-2 border-indigo-200 space-y-6 shadow-xl hover:border-indigo-400 transition-all group ring-4 ring-indigo-50/20">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 bg-indigo-600 text-white rounded-2xl flex items-center justify-center text-3xl shadow-lg transition-all">🏢</div>
               <div>
-                <h4 className="text-xs font-black uppercase tracking-widest text-indigo-600">Por Nome</h4>
-                <p className="text-[10px] text-indigo-500 font-medium">Busque uma marca específica.</p>
+                <h4 className="text-[11px] font-black uppercase tracking-widest text-indigo-600">Por Nome</h4>
+                <p className="text-xs text-indigo-500 font-bold">Imobiliária Específica</p>
               </div>
             </div>
-            <form onSubmit={(e) => { e.preventDefault(); if(nameQuery) performSearch(nameQuery, 'name'); }} className="space-y-3">
+            <form onSubmit={(e) => { e.preventDefault(); if(nameQuery) performSearch(nameQuery, 'name'); }} className="space-y-4">
               <input 
                 type="text" 
-                placeholder="Ex: Remax, Lopes, Coelho..." 
-                className="w-full h-14 px-5 bg-white border border-indigo-200 rounded-2xl outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all text-sm font-bold text-indigo-900 placeholder:text-indigo-200 shadow-inner"
+                placeholder="Ex: Remax, Lopes, Imobiliária X" 
+                className="w-full h-14 px-6 bg-white border border-indigo-200 rounded-2xl outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all text-sm font-bold text-indigo-900 shadow-inner"
                 value={nameQuery}
                 onChange={(e) => setNameQuery(e.target.value)}
                 disabled={loading}
@@ -252,26 +219,93 @@ export const ProspectingView: React.FC<ProspectingViewProps> = ({ onImport }) =>
               <button 
                 type="submit" 
                 disabled={loading || !nameQuery}
-                className="w-full h-14 bg-indigo-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-indigo-100 hover:bg-indigo-700 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                className="w-full h-14 bg-indigo-600 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-xl shadow-indigo-200 hover:bg-indigo-700 active:scale-95 transition-all disabled:opacity-50"
               >
-                {loading && currentSearchType === 'name' ? 'Identificando Empresa...' : 'Buscar Empresa'}
+                {loading && currentSearchType === 'name' ? 'Pesquisando...' : 'Buscar Imobiliária ✓'}
               </button>
             </form>
           </div>
 
-          <div className="bg-amber-50/20 p-7 rounded-[2.5rem] border border-amber-100 space-y-5 shadow-sm hover:border-amber-400 transition-all group ring-1 ring-amber-50">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center text-2xl shadow-sm group-hover:bg-amber-600 group-hover:text-white transition-all">👤</div>
-              <div>
-                <h4 className="text-xs font-black uppercase tracking-widest text-amber-600">Corretores (PF)</h4>
-                <p className="text-[10px] text-amber-500 font-medium">Foco em profissionais autônomos.</p>
+          {/* Busca por Região */}
+          <div className="bg-slate-50 p-8 rounded-[2.5rem] border border-slate-200 space-y-6 shadow-sm hover:border-blue-400 transition-all group">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center text-3xl shadow-sm group-hover:bg-blue-600 group-hover:text-white transition-all">📍</div>
+                <div>
+                  <h4 className="text-[11px] font-black uppercase tracking-widest text-slate-400">Por Região</h4>
+                  <p className="text-xs text-slate-500 font-bold">Cidades e Bairros</p>
+                </div>
               </div>
+              <button 
+                onClick={() => performSearch("", "region", true)}
+                disabled={loading}
+                className="p-3 bg-white border border-slate-200 text-blue-600 rounded-xl hover:bg-blue-50 transition-colors shadow-sm"
+                title="Detectar minha localização"
+              >
+                📡
+              </button>
             </div>
-            <form onSubmit={(e) => { e.preventDefault(); if(brokerQuery) performSearch(brokerQuery, 'broker'); }} className="space-y-3">
+            <form onSubmit={(e) => { e.preventDefault(); performSearch(query, 'region'); }} className="space-y-4">
               <input 
                 type="text" 
-                placeholder="Ex: Corretores autônomos Curitiba..." 
-                className="w-full h-14 px-5 bg-white border border-amber-200 rounded-2xl outline-none focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500 transition-all text-sm font-bold text-amber-900 placeholder:text-amber-200 shadow-inner"
+                placeholder="Ex: Jardins, SP..." 
+                className="w-full h-14 px-6 bg-white border border-slate-200 rounded-2xl outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all text-sm font-bold shadow-inner"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                disabled={loading}
+              />
+              <button 
+                type="submit" 
+                disabled={loading || !query}
+                className="w-full h-14 bg-blue-600 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-xl shadow-blue-100 hover:bg-blue-700 active:scale-95 transition-all disabled:opacity-50"
+              >
+                {loading && currentSearchType === 'region' ? '...' : 'Escanear Região'}
+              </button>
+            </form>
+          </div>
+
+          {/* Busca por Website */}
+          <div className="bg-violet-50/30 p-8 rounded-[2.5rem] border border-violet-100 space-y-6 shadow-sm hover:border-violet-400 transition-all group ring-1 ring-violet-50/50">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 bg-violet-100 text-violet-600 rounded-2xl flex items-center justify-center text-3xl shadow-sm group-hover:bg-violet-600 group-hover:text-white transition-all">🌐</div>
+              <div>
+                <h4 className="text-[11px] font-black uppercase tracking-widest text-violet-600">Por Website</h4>
+                <p className="text-xs text-violet-500 font-bold">Domínios .com.br</p>
+              </div>
+            </div>
+            <form onSubmit={(e) => { e.preventDefault(); if(websiteQuery) performSearch(websiteQuery, 'website'); }} className="space-y-4">
+              <input 
+                type="text" 
+                placeholder="Ex: www.empresa.com.br" 
+                className="w-full h-14 px-6 bg-white border border-violet-200 rounded-2xl outline-none focus:ring-4 focus:ring-violet-500/10 focus:border-violet-500 transition-all text-sm font-bold text-violet-900 shadow-inner"
+                value={websiteQuery}
+                onChange={(e) => setWebsiteQuery(e.target.value)}
+                disabled={loading}
+              />
+              <button 
+                type="submit" 
+                disabled={loading || !websiteQuery}
+                className="w-full h-14 bg-violet-600 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-xl shadow-violet-100 hover:bg-violet-700 active:scale-95 transition-all disabled:opacity-50"
+              >
+                {loading && currentSearchType === 'website' ? '...' : 'Rastrear Site'}
+              </button>
+            </form>
+          </div>
+
+          {/* Busca por Corretores */}
+          <div className="bg-amber-50/30 p-8 rounded-[2.5rem] border border-amber-100 space-y-6 shadow-sm hover:border-amber-400 transition-all group ring-1 ring-amber-50/50">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center text-3xl shadow-sm group-hover:bg-amber-600 group-hover:text-white transition-all">👤</div>
+              <div>
+                <h4 className="text-[11px] font-black uppercase tracking-widest text-amber-600">Corretores PF</h4>
+                <p className="text-xs text-amber-500 font-bold">Autônomos / CRECI</p>
+              </div>
+            </div>
+            <form onSubmit={(e) => { e.preventDefault(); if(brokerQuery) performSearch(brokerQuery, 'broker'); }} className="space-y-4">
+              <input 
+                type="text" 
+                placeholder="Ex: Corretores em SP..." 
+                className="w-full h-14 px-6 bg-white border border-amber-200 rounded-2xl outline-none focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500 transition-all text-sm font-bold text-amber-900 shadow-inner"
                 value={brokerQuery}
                 onChange={(e) => setBrokerQuery(e.target.value)}
                 disabled={loading}
@@ -279,65 +313,57 @@ export const ProspectingView: React.FC<ProspectingViewProps> = ({ onImport }) =>
               <button 
                 type="submit" 
                 disabled={loading || !brokerQuery}
-                className="w-full h-14 bg-blue-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-blue-100 hover:bg-blue-700 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                className="w-full h-14 bg-slate-900 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-xl shadow-slate-200 hover:bg-black active:scale-95 transition-all disabled:opacity-50"
               >
-                {loading && currentSearchType === 'broker' ? 'Localizando Profissionais...' : 'Buscar Corretores PF'}
+                {loading && currentSearchType === 'broker' ? '...' : 'Filtrar'}
               </button>
             </form>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-white p-6 rounded-3xl border border-emerald-100 shadow-xl shadow-emerald-900/5 space-y-4 ring-1 ring-emerald-50">
-          <h4 className="text-[10px] font-black text-emerald-600 uppercase tracking-widest flex items-center gap-2">
-            <span className="text-lg">📱</span> Identificação Reversa por Telefone
+      {/* Busca Reversa */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="bg-white p-8 rounded-[2.5rem] border border-emerald-100 shadow-xl shadow-emerald-900/5 space-y-5 ring-1 ring-emerald-50">
+          <h4 className="text-[11px] font-black text-emerald-600 uppercase tracking-[0.2em] flex items-center gap-3">
+            <span className="text-2xl">📱</span> Identificação Reversa por Telefone
           </h4>
           <form 
-            className="flex gap-2" 
+            className="flex gap-3" 
             onSubmit={(e) => { e.preventDefault(); if(phoneQuery) performSearch(phoneQuery, 'phone'); }}
           >
             <div className="flex-1 relative">
               <input 
                 type="text" 
                 placeholder="(00) 00000-0000" 
-                className="w-full h-12 px-4 bg-emerald-50 border border-emerald-100 rounded-xl outline-none text-sm font-bold text-emerald-900 placeholder:text-emerald-300 disabled:opacity-50"
+                className="w-full h-14 px-6 bg-emerald-50/50 border border-emerald-100 rounded-2xl outline-none text-sm font-bold text-emerald-900 placeholder:text-emerald-300 disabled:opacity-50 focus:bg-white transition-all"
                 value={phoneQuery}
                 onChange={(e) => setPhoneQuery(maskPhone(e.target.value))}
                 disabled={loading}
               />
-              {phoneQuery && (
-                <button 
-                  type="button" 
-                  onClick={() => setPhoneQuery('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-emerald-300 hover:text-emerald-500 transition-colors"
-                >
-                  ✖
-                </button>
-              )}
             </div>
             <button 
               type="submit" 
               disabled={loading || !phoneQuery}
-              className="px-6 h-12 bg-emerald-600 text-white rounded-xl font-bold text-[10px] uppercase tracking-wider hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100 active:scale-95 disabled:opacity-50"
+              className="px-8 h-14 bg-emerald-600 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-lg active:scale-95 disabled:opacity-50"
             >
               {loading && currentSearchType === 'phone' ? '...' : 'Rastrear'}
             </button>
           </form>
         </div>
 
-        <div className="bg-white p-6 rounded-3xl border border-indigo-100 shadow-xl shadow-indigo-900/5 space-y-4 ring-1 ring-indigo-50">
-          <h4 className="text-[10px] font-black text-indigo-600 uppercase tracking-widest flex items-center gap-2">
-            <span className="text-lg">📧</span> Origem por E-mail
+        <div className="bg-white p-8 rounded-[2.5rem] border border-indigo-100 shadow-xl shadow-indigo-900/5 space-y-5 ring-1 ring-indigo-50">
+          <h4 className="text-[11px] font-black text-indigo-600 uppercase tracking-[0.2em] flex items-center gap-3">
+            <span className="text-2xl">📧</span> Origem por Domínio/E-mail
           </h4>
           <form 
-            className="flex gap-2"
+            className="flex gap-3"
             onSubmit={(e) => { e.preventDefault(); if(emailQuery) performSearch(emailQuery, 'email'); }}
           >
             <input 
               type="email" 
-              placeholder="exemplo@imobiliaria.com.br" 
-              className="flex-1 h-12 px-4 bg-indigo-50 border border-indigo-100 rounded-xl outline-none text-sm font-bold text-indigo-900 placeholder:text-indigo-300 disabled:opacity-50"
+              placeholder="contato@empresa.com.br" 
+              className="flex-1 h-14 px-6 bg-indigo-50/50 border border-indigo-100 rounded-2xl outline-none text-sm font-bold text-indigo-900 placeholder:text-indigo-300 disabled:opacity-50 focus:bg-white transition-all"
               value={emailQuery}
               onChange={(e) => setEmailQuery(e.target.value)}
               disabled={loading}
@@ -345,7 +371,7 @@ export const ProspectingView: React.FC<ProspectingViewProps> = ({ onImport }) =>
             <button 
               type="submit" 
               disabled={loading || !emailQuery}
-              className="px-6 h-12 bg-indigo-600 text-white rounded-xl font-bold text-[10px] uppercase tracking-wider hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 active:scale-95 disabled:opacity-50"
+              className="px-8 h-14 bg-indigo-600 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-lg active:scale-95 disabled:opacity-50"
             >
               {loading && currentSearchType === 'email' ? '...' : 'Identificar'}
             </button>
@@ -354,111 +380,84 @@ export const ProspectingView: React.FC<ProspectingViewProps> = ({ onImport }) =>
       </div>
 
       {loading && (
-        <div className="py-20 text-center space-y-6">
-          <div className="relative w-24 h-24 mx-auto">
-            <div className="absolute inset-0 border-[6px] border-slate-100 rounded-full"></div>
-            <div className="absolute inset-0 border-[6px] border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-            <div className="absolute inset-0 flex items-center justify-center text-4xl">📡</div>
+        <div className="py-32 text-center space-y-8 animate-fadeIn">
+          <div className="relative w-32 h-32 mx-auto">
+            <div className="absolute inset-0 border-[8px] border-slate-100 rounded-[2.5rem]"></div>
+            <div className="absolute inset-0 border-[8px] border-blue-600 border-t-transparent rounded-[2.5rem] animate-spin"></div>
+            <div className="absolute inset-0 flex items-center justify-center text-5xl">📡</div>
           </div>
-          <div className="space-y-1">
-            <p className="text-xl font-black text-slate-900">Sincronizando com Radar IA...</p>
-            <p className="text-sm text-slate-400 font-medium">Extraindo registros de classe, portais e redes profissionais.</p>
+          <div className="space-y-2">
+            <p className="text-2xl font-black text-slate-900 tracking-tight">PartnerHub Radar Ativo...</p>
+            <p className="text-sm text-slate-400 font-bold uppercase tracking-widest">Extraindo metadados comerciais e contatos estratégicos</p>
           </div>
         </div>
       )}
 
       {results && (
-        <div className="animate-slideUp space-y-6">
-          <div className="flex justify-between items-center px-4">
-            <h3 className="text-xl font-black text-slate-800 flex items-center gap-3">
-              <span className={`px-3 py-1 rounded-lg ${currentSearchType === 'broker' ? 'bg-amber-100 text-amber-600' : 'bg-blue-100 text-blue-600'}`}>
+        <div className="animate-slideUp space-y-8">
+          <div className="flex justify-between items-center px-6">
+            <h3 className="text-2xl font-black text-slate-800 flex items-center gap-4">
+              <span className={`px-4 py-1.5 rounded-2xl border ${currentSearchType === 'broker' ? 'bg-amber-100 text-amber-600 border-amber-200' : (currentSearchType === 'website' ? 'bg-violet-100 text-violet-600 border-violet-200' : 'bg-blue-100 text-blue-600 border-blue-200')}`}>
                 {resultLines.length || 0}
               </span>
-              {currentSearchType === 'broker' ? 'Corretores Individuais Localizados' : 
-               currentSearchType === 'phone' ? 'Resultado da Busca por Telefone' : 
-               currentSearchType === 'name' ? 'Resultados por Nome de Empresa' : 
-               'Resultados do Radar por Região'}
+              Oportunidades Encontradas
             </h3>
-            <button onClick={() => setResults(null)} className="text-xs font-bold text-slate-400 hover:text-red-500 uppercase tracking-widest transition-colors">Limpar Resultados</button>
+            <button onClick={() => setResults(null)} className="text-[11px] font-black text-slate-400 hover:text-red-500 uppercase tracking-widest transition-colors">Limpar Busca</button>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {resultLines.length > 0 ? resultLines.map((line, idx) => {
               const data = parseCompanyLine(line);
               const isBroker = data.creci !== "" || line.toLowerCase().includes('corretor') || currentSearchType === 'broker';
 
               return (
-                <div key={idx} className="group bg-white p-6 rounded-[2.5rem] border border-slate-200 hover:border-blue-500 hover:shadow-2xl hover:shadow-blue-900/5 transition-all flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
-                  <div className="flex-1 min-w-0 flex items-start gap-5">
-                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0 shadow-sm ${isBroker ? 'bg-amber-100 text-amber-600' : 'bg-blue-100 text-blue-600'}`}>
+                <div key={idx} className="group bg-white p-8 rounded-[3rem] border border-slate-200 hover:border-blue-500 hover:shadow-2xl transition-all flex flex-col sm:flex-row justify-between items-start sm:items-center gap-8 ring-1 ring-slate-100">
+                  <div className="flex-1 min-w-0 flex items-start gap-6">
+                    <div className={`w-16 h-16 rounded-[1.5rem] flex items-center justify-center text-3xl flex-shrink-0 shadow-sm transition-all group-hover:scale-110 ${isBroker ? 'bg-amber-100 text-amber-600' : 'bg-blue-100 text-blue-600'}`}>
                       {isBroker ? '👤' : '🏢'}
                     </div>
-                    <div className="flex-1 min-w-0 space-y-1">
-                      <h5 className="text-lg font-black text-slate-900 group-hover:text-blue-600 truncate transition-colors">
+                    <div className="flex-1 min-w-0 space-y-2">
+                      <h5 className="text-xl font-black text-slate-900 group-hover:text-blue-600 truncate transition-colors flex items-center gap-3">
                         {data.name} 
-                        {data.creci && <span className="ml-2 text-[10px] text-amber-600 bg-amber-50 px-2 py-0.5 rounded-lg border border-amber-100 font-black uppercase">CRECI: {data.creci}</span>}
+                        {data.creci && <span className="text-[9px] text-amber-600 bg-amber-50 px-2 py-0.5 rounded-lg border border-amber-100 font-black uppercase">CRECI: {data.creci}</span>}
                       </h5>
-                      <p className="text-xs text-slate-500 font-medium truncate">{data.address}</p>
-                      <div className="flex flex-wrap gap-2 pt-2">
+                      <p className="text-sm text-slate-500 font-bold leading-tight">{data.address}</p>
+                      <div className="flex flex-wrap gap-2 pt-1">
                         {data.phone && (
-                          <span className="text-[10px] font-mono font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-lg border border-blue-100 uppercase tracking-widest">{data.phone}</span>
+                          <span className="text-[10px] font-mono font-black text-blue-600 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-100 uppercase tracking-widest">{data.phone}</span>
                         )}
                         {data.website && (
-                          <a 
-                            href={data.website.startsWith('http') ? data.website : `https://${data.website}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded-lg border border-indigo-100 uppercase tracking-widest hover:bg-indigo-100 transition-colors"
-                          >
-                            🌐 WEBSITE
-                          </a>
+                          <a href={data.website.startsWith('http') ? data.website : `https://${data.website}`} target="_blank" rel="noopener noreferrer" className="text-[10px] font-black text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-100 uppercase tracking-widest">🌐 SITE</a>
                         )}
                       </div>
                     </div>
                   </div>
                   
-                  <div className="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto">
-                    <button 
-                      onClick={() => openWhatsApp(data)}
-                      disabled={!data.phone}
-                      className="w-full sm:w-auto h-12 px-6 bg-emerald-500 text-white rounded-xl text-[10px] font-black hover:bg-emerald-600 transition-all flex items-center justify-center gap-2 active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed shadow-lg shadow-emerald-100"
-                    >
-                      <span className="text-lg">💬</span> WHATSAPP
-                    </button>
-                    <button 
-                      onClick={() => onImport(data)}
-                      className="w-full sm:w-auto h-12 px-6 bg-slate-900 text-white rounded-xl text-[10px] font-black hover:bg-black transition-all flex items-center justify-center gap-2 active:scale-95"
-                    >
-                      <span>📥</span> IMPORTAR
-                    </button>
+                  <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
+                    <button onClick={() => openWhatsApp(data)} disabled={!data.phone} className="w-full sm:w-auto h-14 px-8 bg-emerald-500 text-white rounded-2xl text-[11px] font-black hover:bg-emerald-600 transition-all flex items-center justify-center gap-3 shadow-xl disabled:opacity-30">💬 CONTATO</button>
+                    <button onClick={() => onImport(data)} className="w-full sm:w-auto h-14 px-8 bg-slate-900 text-white rounded-2xl text-[11px] font-black hover:bg-black transition-all flex items-center justify-center gap-3 shadow-xl">📥 IMPORTAR</button>
                   </div>
                 </div>
               );
             }) : (
-              <div className="col-span-full py-20 text-center bg-white rounded-[3rem] border-2 border-dashed border-slate-200">
-                <div className="text-5xl mb-4 grayscale opacity-40">🕵️‍♂️</div>
-                <h4 className="text-xl font-bold text-slate-400">Nenhum registro encontrado nesta fonte.</h4>
-                <p className="text-sm text-slate-400 mt-2">Tente ajustar os termos da busca ou detalhar melhor o nome ou região.</p>
+              <div className="col-span-full py-24 text-center bg-white rounded-[4rem] border-2 border-dashed border-slate-200">
+                <div className="text-7xl mb-6 grayscale opacity-20">🕵️‍♂️</div>
+                <h4 className="text-2xl font-black text-slate-400">Dados não localizados</h4>
+                <p className="text-sm text-slate-400 mt-2 font-bold uppercase tracking-widest">Tente outro domínio ou refina os termos de busca</p>
               </div>
             )}
           </div>
 
           {results.sources.length > 0 && (
-            <div className="bg-slate-900 p-8 rounded-[2.5rem] shadow-xl text-white">
-              <div className="flex items-center gap-3 mb-6">
-                <span className="bg-white/10 p-2 rounded-lg">🔗</span>
-                <h4 className="text-xs font-black uppercase tracking-widest text-slate-400">Grounding e Fontes Oficiais</h4>
+            <div className="bg-slate-950 p-10 rounded-[3rem] shadow-2xl text-white">
+              <div className="flex items-center gap-4 mb-8">
+                <div className="bg-blue-600 p-2.5 rounded-xl">🔗</div>
+                <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">Grounding de Fontes Digitais</h4>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {results.sources.map((chunk, idx) => (chunk.maps || chunk.web) && (
-                  <a 
-                    key={idx} 
-                    href={chunk.maps?.uri || chunk.web?.uri} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="p-3 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 hover:border-blue-500/50 transition-all text-[10px] font-bold text-slate-300 truncate flex items-center gap-2"
-                  >
-                    <span>{chunk.maps ? '📍' : '🌐'}</span> {chunk.maps?.title || chunk.web?.title}
+                  <a key={idx} href={chunk.maps?.uri || chunk.web?.uri} target="_blank" rel="noopener noreferrer" className="p-4 bg-white/5 border border-white/10 rounded-2xl hover:bg-white/10 transition-all text-[11px] font-black text-slate-300 truncate flex items-center gap-3">
+                    <span className="text-base">{chunk.maps ? '📍' : '🌐'}</span> {chunk.maps?.title || chunk.web?.title}
                   </a>
                 ))}
               </div>

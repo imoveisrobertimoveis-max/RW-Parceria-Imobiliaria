@@ -174,3 +174,31 @@ export const searchByEmail = async (email: string) => {
     throw error;
   }
 };
+
+export const searchByWebsite = async (url: string) => {
+  const prompt = `Extraia informações comerciais da imobiliária dona do website: ${url}. 
+  Ignore se for um portal de anúncios (como VivaReal). Foque em sites de imobiliárias próprias.
+  
+  Retorne no formato: "NOME | ENDEREÇO (Logradouro, Número - Bairro - Cidade/UF) | Telefone: (00) 00000-0000 | Website: ${url}"`;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: prompt,
+      config: {
+        tools: [{ googleSearch: {} }]
+      },
+    });
+
+    const text = response.text || "";
+    const groundingChunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
+
+    return {
+      text,
+      sources: groundingChunks
+    };
+  } catch (error) {
+    console.error("Website Search Error:", error);
+    throw error;
+  }
+};

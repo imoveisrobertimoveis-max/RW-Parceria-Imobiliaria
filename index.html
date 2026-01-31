@@ -4,49 +4,39 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Portal de Parceiros</title>
+    <title>PartnerHub CRM PRO</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#2563eb">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/9322/9322127.png">
+    
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
     <style>
-        body { font-family: 'Inter', sans-serif; }
-        .leaflet-container {
-            width: 100%;
-            height: 100%;
-            border-radius: 1rem;
-        }
+        body { font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        
+        .leaflet-container { width: 100%; height: 100%; border-radius: 0; }
+        
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        @keyframes slideDown { from { transform: translateY(-10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        @keyframes scaleIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        
+        .animate-fadeIn { animation: fadeIn 0.4s ease-out; }
+        .animate-slideUp { animation: slideUp 0.5s ease-out; }
+        .animate-slideDown { animation: slideDown 0.3s ease-out; }
+        .animate-scaleIn { animation: scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+
         @media print {
-            aside, header, .no-print, button {
-                display: none !important;
-            }
-            main {
-                padding: 0 !important;
-                margin: 0 !important;
-                width: 100% !important;
-            }
-            .print-only {
-                display: block !important;
-            }
-            .bg-slate-50 {
-                background-color: white !important;
-            }
-            .rounded-2xl {
-                border-radius: 0 !important;
-                border: none !important;
-                box-shadow: none !important;
-            }
-            table {
-                width: 100% !important;
-                border-collapse: collapse !important;
-            }
-            th, td {
-                border: 1px solid #e2e8f0 !important;
-                padding: 8px !important;
-                font-size: 10pt !important;
-            }
-        }
-        .print-only {
-            display: none;
+            aside, header, .no-print, button { display: none !important; }
+            main { padding: 0 !important; margin: 0 !important; width: 100% !important; }
+            .bg-slate-50 { background-color: white !important; }
+            .rounded-2xl, .rounded-[2rem], .rounded-[3rem] { border-radius: 0 !important; border: none !important; box-shadow: none !important; }
+            table { width: 100% !important; border-collapse: collapse !important; }
+            th, td { border: 1px solid #e2e8f0 !important; padding: 8px !important; font-size: 9pt !important; }
         }
     </style>
 <script type="importmap">
@@ -65,7 +55,18 @@
 }
 </script>
 </head>
-<body class="bg-slate-50 text-slate-900">
+<body class="bg-slate-50 text-slate-900 overflow-hidden">
     <div id="root"></div>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('./sw.js').then(reg => {
+            console.log('PartnerHub SW Registered');
+          }).catch(err => {
+            console.log('SW Registration failed', err);
+          });
+        });
+      }
+    </script>
 </body>
 </html>

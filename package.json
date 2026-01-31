@@ -1,27 +1,22 @@
+
 {
-  "name": "imobiliárias-parceiras",
-  "private": true,
-  "version": "0.0.0",
-  "type": "module",
+  "name": "partnerhub-crm-pro",
+  "version": "2.0.0",
+  "description": "CRM Desktop para Gestão de Parcerias",
+  "main": "main.js",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
+    "start": "electron .",
+    "build": "electron-builder"
   },
-  "dependencies": {
-    "react": "^19.2.3",
-    "recharts": "^3.6.0",
-    "@google/genai": "^1.36.0",
-    "react-dom": "^19.2.3",
-    "leaflet": "1.9.4",
-    "jspdf": "2.5.1",
-    "jspdf-autotable": "3.8.2",
-    "html2canvas": "1.4.1"
-  },
+  "keywords": [
+    "CRM",
+    "Desktop",
+    "Imobiliaria"
+  ],
+  "author": "PartnerHub",
+  "license": "ISC",
   "devDependencies": {
-    "@types/node": "^22.14.0",
-    "@vitejs/plugin-react": "^5.0.0",
-    "typescript": "~5.8.2",
-    "vite": "^6.2.0"
+    "electron": "^28.0.0",
+    "electron-builder": "^24.9.1"
   }
 }

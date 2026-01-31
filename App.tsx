@@ -11,38 +11,6 @@ import { Company, DashboardStats } from './types';
 import { getAIInsights } from './services/geminiService';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
-const BR_STATES = [
-  'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG', 
-  'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'
-];
-
-const ShareLinkModal: React.FC<{ url: string; onClose: () => void }> = ({ url, onClose }) => {
-  const [copied, setCopied] = useState(false);
-  const handleCopy = () => {
-    navigator.clipboard.writeText(url);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(url)}`;
-
-  return (
-    <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
-      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-200">
-        <div className="p-8 text-center">
-          <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-4">🔗</div>
-          <h3 className="text-xl font-bold text-slate-800 mb-2">Link de Cadastro Público</h3>
-          <img src={qrCodeUrl} alt="QR Code" className="w-32 h-32 mx-auto my-6 p-2 border rounded-2xl" />
-          <div className="flex gap-2 items-center bg-slate-50 p-3 rounded-2xl border border-slate-200 mb-6">
-            <span className="text-[10px] font-mono truncate flex-1">{url}</span>
-            <button onClick={handleCopy} className="p-2 bg-white border rounded-lg hover:bg-blue-50">{copied ? '✅' : '📋'}</button>
-          </div>
-          <button onClick={onClose} className="w-full py-3 bg-slate-800 text-white rounded-xl font-bold">Fechar</button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<AppTab>('dashboard');
   const [companies, setCompanies] = useState<Company[]>([]);
@@ -53,23 +21,14 @@ const App: React.FC = () => {
   const [aiInsights, setAiInsights] = useState<string>('');
   const [loadingInsights, setLoadingInsights] = useState(false);
   
-  // Filtros
+  // Filtros Avançados
   const [nameFilter, setNameFilter] = useState('');
   const [cnpjFilter, setCnpjFilter] = useState('');
-  const [cepFilter, setCepFilter] = useState('');
+  const [hiringManagerFilter, setHiringManagerFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [partnershipManagerFilter, setPartnershipManagerFilter] = useState<string>('all');
-  const [minBrokers, setMinBrokers] = useState<string>('');
-  const [maxBrokers, setMaxBrokers] = useState<string>('');
-  const [creciFilter, setCreciFilter] = useState('');
-  const [creciUfFilter, setCreciUfFilter] = useState('all');
-  const [contactTypeFilter, setContactTypeFilter] = useState<string>('all');
 
   const [isPublicMode, setIsPublicMode] = useState(false);
   const [registrationSuccess, setRegistrationSuccess] = useState(false);
-  const [showShareModal, setShowShareModal] = useState(false);
-
-  const publicRegistrationUrl = useMemo(() => `${window.location.origin}${window.location.pathname}?mode=register`, []);
 
   useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search);
@@ -80,14 +39,14 @@ const App: React.FC = () => {
       setCompanies(JSON.parse(saved));
     } else {
       const mock: Company[] = [{
-        id: '1', name: 'Horizonte Imóveis', cnpj: '12.345.678/0001-99', docType: 'CNPJ',
+        id: '1', name: 'Horizonte Imobiliária', cnpj: '12.345.678/0001-99', docType: 'CNPJ',
         cep: '01310-100', address: 'Av. Paulista, 1000 - Bela Vista - SP',
         location: { lat: -23.5614, lng: -46.6559 }, responsible: 'Maria Silva',
         partnershipManager: 'Ana Paula Santos',
         hiringManager: 'Ricardo Mendes', email: 'contato@horizonte.com', phone: '(11) 98888-7777',
-        registrationDate: '2023-10-15', brokerCount: 1, commissionRate: 5, status: 'Ativo',
+        registrationDate: '2023-10-15', brokerCount: 5, commissionRate: 5, status: 'Ativo',
         lastContactType: 'Reunião',
-        contactHistory: [{ id: 'h1', date: '2024-03-20', type: 'Reunião', summary: 'Definição de novas metas.', details: 'Reunião estratégica inicial.' }],
+        contactHistory: [{ id: 'h1', date: '2024-03-20', type: 'Reunião', summary: 'Definição de novas metas de captação.', details: 'Reunião estratégica inicial para o Q2.' }],
         brokers: [{ id: 'b1', name: 'Juliana Castro', creci: '998877', creciUF: 'SP', email: 'juliana@horizonte.com' }]
       }];
       setCompanies(mock);
@@ -122,32 +81,29 @@ const App: React.FC = () => {
     }).sort((a,b) => new Date(a.nextContactDate!).getTime() - new Date(b.nextContactDate!).getTime());
   }, [companies]);
 
-  const uniquePartnershipManagers = useMemo(() => {
-    const managers = companies
-      .map(c => c.partnershipManager)
-      .filter((m): m is string => !!m && m.trim() !== '');
-    return Array.from(new Set(managers)).sort();
+  const uniqueHiringManagers = useMemo(() => {
+    return Array.from(new Set(companies.map(c => c.hiringManager))).filter(Boolean).sort();
   }, [companies]);
 
   const filteredCompanies = useMemo(() => {
     return companies.filter(c => {
       const matchesName = c.name.toLowerCase().includes(nameFilter.toLowerCase());
       const matchesCnpj = c.cnpj.replace(/\D/g, '').includes(cnpjFilter.replace(/\D/g, ''));
-      const matchesCep = (c.cep || '').replace(/\D/g, '').includes(cepFilter.replace(/\D/g, ''));
       const matchesStatus = statusFilter === 'all' || c.status === statusFilter;
-      const matchesManager = partnershipManagerFilter === 'all' || c.partnershipManager === partnershipManagerFilter;
-      const matchesMin = minBrokers === '' || c.brokerCount >= parseInt(minBrokers);
-      const matchesMax = maxBrokers === '' || c.brokerCount <= parseInt(maxBrokers);
-      
-      const companyCreci = c.creci || (c.docType === 'CRECI' ? c.cnpj : '');
-      const matchesCreci = companyCreci.toLowerCase().includes(creciFilter.toLowerCase());
-      const matchesCreciUf = creciUfFilter === 'all' || c.creciUF === creciUfFilter;
-      
-      const matchesContactType = contactTypeFilter === 'all' || c.lastContactType === contactTypeFilter;
-
-      return matchesName && matchesCnpj && matchesCep && matchesStatus && matchesManager && matchesMin && matchesMax && matchesCreci && matchesCreciUf && matchesContactType;
+      const matchesHiring = hiringManagerFilter === 'all' || c.hiringManager === hiringManagerFilter;
+      return matchesName && matchesCnpj && matchesStatus && matchesHiring;
     });
-  }, [companies, nameFilter, cnpjFilter, cepFilter, statusFilter, partnershipManagerFilter, minBrokers, maxBrokers, creciFilter, creciUfFilter, contactTypeFilter]);
+  }, [companies, nameFilter, cnpjFilter, statusFilter, hiringManagerFilter]);
+
+  const handleUpdateBrokerCount = (id: string, delta: number) => {
+    setCompanies(prev => prev.map(c => {
+      if (c.id === id) {
+        const newCount = Math.max(0, (c.brokerCount || 0) + delta);
+        return { ...c, brokerCount: newCount };
+      }
+      return c;
+    }));
+  };
 
   const handleSaveCompany = (data: Omit<Company, 'id' | 'registrationDate'>) => {
     if (editingCompany && editingCompany.id) {
@@ -161,31 +117,29 @@ const App: React.FC = () => {
 
   const handleUpdateCompany = (updated: Company) => {
     setCompanies(companies.map(c => c.id === updated.id ? updated : c));
-    if (selectedCompanyForDetails?.id === updated.id) {
-      setSelectedCompanyForDetails(updated);
-    }
+    if (selectedCompanyForDetails?.id === updated.id) setSelectedCompanyForDetails(updated);
   };
 
   const handleEdit = (c: Company) => { setEditingCompany(c); setShowForm(true); setActiveTab('companies'); };
 
-  const handleImport = (companyData: { name: string; address: string; phone: string; creci?: string; docType?: 'CNPJ' | 'CPF' | 'CRECI' }) => {
-    const importedCompany: Partial<Company> = {
-      name: companyData.name,
-      address: companyData.address,
-      phone: companyData.phone,
-      cnpj: companyData.docType === 'CRECI' ? (companyData.creci || '') : '',
-      creci: companyData.creci || '',
-      docType: companyData.docType || 'CNPJ',
+  const handleImport = (companyData: any) => {
+    const imported: Partial<Company> = {
+      ...companyData,
       status: 'Inativo',
       brokerCount: 0,
       commissionRate: 5,
-      hiringManager: 'IA Radar Import',
+      hiringManager: 'Fila de Triagem IA',
       contactHistory: [],
       brokers: []
     };
-    setEditingCompany(importedCompany as Company);
+    setEditingCompany(imported as Company);
     setShowForm(true);
     setActiveTab('companies');
+  };
+
+  const handleRestore = (newCompanies: Company[]) => {
+    setCompanies(newCompanies);
+    localStorage.setItem('partner_hub_v2_cos', JSON.stringify(newCompanies));
   };
 
   const fetchAIInsights = async () => {
@@ -195,70 +149,21 @@ const App: React.FC = () => {
     setLoadingInsights(false);
   };
 
-  const handleClearFilters = () => {
-    setNameFilter('');
-    setCnpjFilter('');
-    setCepFilter('');
-    setStatusFilter('all');
-    setPartnershipManagerFilter('all');
-    setMinBrokers('');
-    setMaxBrokers('');
-    setCreciFilter('');
-    setCreciUfFilter('all');
-    setContactTypeFilter('all');
-  };
-
-  const handleExportCSV = () => {
-    if (filteredCompanies.length === 0) {
-      alert("Não há dados filtrados para exportar.");
-      return;
-    }
-
-    const headers = ["Nome da Empresa", "CNPJ/CPF", "CEP", "Telefone", "Status", "Gestor da Parceria", "CRECI", "UF CRECI", "Último Contato", "Data Registro", "Equipe"];
-    const csvContent = filteredCompanies.map(c => {
-      const creciValue = c.creci || (c.docType === 'CRECI' ? c.cnpj : '');
-      return [
-        `"${c.name.replace(/"/g, '""')}"`,
-        `"${c.cnpj}"`,
-        `"${c.cep || ''}"`,
-        `"${c.phone}"`,
-        `"${c.status}"`,
-        `"${(c.partnershipManager || '').replace(/"/g, '""')}"`,
-        `"${(creciValue || '').replace(/"/g, '""')}"`,
-        `"${c.creciUF || ''}"`,
-        `"${c.lastContactType || 'N/A'}"`,
-        `"${c.registrationDate}"`,
-        c.brokerCount
-      ].join(",");
-    });
-
-    const csvString = "\ufeff" + [headers.join(","), ...csvContent].join("\n");
-    const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `parceiros_filtrados_${new Date().toISOString().split('T')[0]}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  };
-
   if (isPublicMode) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6 font-sans">
         {registrationSuccess ? (
-          <div className="bg-white p-12 rounded-3xl shadow-2xl text-center max-w-md border">
-            <div className="text-5xl mb-6">✅</div>
-            <h2 className="text-2xl font-bold text-slate-800 mb-2">Sucesso!</h2>
-            <p className="text-slate-500 mb-8">Seus dados foram enviados. Nossa equipe analisará e entrará em contato em breve.</p>
-            <button onClick={() => window.location.reload()} className="w-full py-4 bg-blue-600 text-white rounded-xl font-bold">Novo Cadastro</button>
+          <div className="bg-white p-16 rounded-[3rem] shadow-2xl text-center max-w-md border border-emerald-100">
+            <div className="w-20 h-20 bg-emerald-50 text-emerald-500 rounded-3xl flex items-center justify-center text-5xl mx-auto mb-8 shadow-inner">✓</div>
+            <h2 className="text-3xl font-black text-slate-900 mb-4 tracking-tight">Cadastro Recebido!</h2>
+            <p className="text-slate-500 mb-10 font-medium">Suas informações foram integradas ao nosso CRM. Nossa equipe comercial entrará em contato em breve.</p>
+            <button onClick={() => window.location.reload()} className="w-full h-14 bg-slate-900 text-white rounded-2xl font-black uppercase tracking-widest hover:bg-black transition-all">Novo Credenciamento</button>
           </div>
         ) : (
           <div className="w-full max-w-2xl">
-            <header className="text-center mb-8">
-              <h1 className="text-3xl font-bold text-slate-800">PartnerHub</h1>
-              <p className="text-slate-500 font-medium mt-1">Portal de Credenciamento Externo</p>
+            <header className="text-center mb-10">
+              <h1 className="text-4xl font-black text-slate-900 tracking-tighter">PartnerHub <span className="text-blue-600">Onboarding</span></h1>
+              <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px] mt-2">Portal Externo de Novas Parcerias</p>
             </header>
             <CompanyForm onSave={handleSaveCompany} onCancel={() => {}} isPublic={true} />
           </div>
@@ -270,279 +175,213 @@ const App: React.FC = () => {
   return (
     <Layout activeTab={activeTab} setActiveTab={setActiveTab} companies={companies} upcomingContacts={upcomingContacts}>
       {activeTab === 'dashboard' && (
-        <div className="space-y-8 animate-fadeIn">
-          <div className="flex justify-between items-center">
+        <div className="space-y-10 animate-fadeIn">
+          <div className="flex justify-between items-end">
             <div>
-              <h3 className="text-2xl font-bold text-slate-800">Visão Geral da Rede</h3>
-              <p className="text-sm text-slate-500">Métricas consolidadas de desempenho e relacionamento.</p>
+              <h3 className="text-3xl font-black text-slate-900 tracking-tight">Executive Dashboard</h3>
+              <p className="text-slate-500 text-sm font-medium">Indicadores chave de desempenho e saúde da rede.</p>
             </div>
-            <button onClick={() => setShowShareModal(true)} className="px-5 py-2.5 bg-blue-600 text-white rounded-xl font-bold shadow-lg shadow-blue-100 transition-all hover:scale-[1.02] active:scale-95">🔗 Link de Captação</button>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <div className="bg-white p-6 rounded-2xl border border-slate-100">
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Parceiros</p>
-              <h4 className="text-3xl font-black text-slate-800 mt-2">{stats.totalCompanies}</h4>
-            </div>
-            <div className="bg-white p-6 rounded-2xl border border-slate-100">
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Equipe Total</p>
-              <h4 className="text-3xl font-black text-slate-800 mt-2">{stats.totalBrokers} <span className="text-xs text-slate-400 font-medium">corretores</span></h4>
-            </div>
-            <div className="bg-white p-6 rounded-2xl border border-slate-100">
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Atividade</p>
-              <h4 className="text-3xl font-black text-green-600 mt-2">{stats.activePercentage}%</h4>
-            </div>
-            <div className="bg-blue-600 p-6 rounded-2xl shadow-xl text-white">
-              <p className="text-xs font-bold text-blue-200 uppercase tracking-widest">Ticket Médio</p>
-              <h4 className="text-2xl font-bold mt-2">{stats.avgBrokers} <span className="text-xs font-medium">profissionais/empresa</span></h4>
+            <div className="flex gap-4">
+               <div className="bg-white px-5 py-3 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-3">
+                  <span className="w-3 h-3 bg-emerald-500 rounded-full animate-pulse"></span>
+                  <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Sincronização OK</span>
+               </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2 bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
-               <h4 className="text-lg font-bold text-slate-800 mb-6">Volume de Equipe por Parceiro</h4>
-               <div className="h-64">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+            <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-900/5 group hover:bg-blue-600 transition-all duration-500">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest group-hover:text-blue-200">Total de Parceiros</p>
+              <h4 className="text-5xl font-black text-slate-900 mt-3 tracking-tighter group-hover:text-white">{stats.totalCompanies}</h4>
+              <div className="mt-4 flex items-center gap-2 text-[10px] font-bold text-slate-400 group-hover:text-blue-100">
+                <span>📈 +12% este mês</span>
+              </div>
+            </div>
+            <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-900/5 group hover:bg-indigo-600 transition-all duration-500">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest group-hover:text-indigo-200">Capilaridade (Corretores)</p>
+              <h4 className="text-5xl font-black text-slate-900 mt-3 tracking-tighter group-hover:text-white">{stats.totalBrokers}</h4>
+              <div className="mt-4 flex items-center gap-2 text-[10px] font-bold text-slate-400 group-hover:text-indigo-100">
+                <span>🏢 {stats.avgBrokers} por unidade</span>
+              </div>
+            </div>
+            <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-900/5 group hover:bg-emerald-600 transition-all duration-500">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest group-hover:text-emerald-200">Health Score (Atividade)</p>
+              <h4 className="text-5xl font-black text-emerald-600 mt-3 tracking-tighter group-hover:text-white">{stats.activePercentage}%</h4>
+              <div className="mt-4 flex items-center gap-2 text-[10px] font-bold text-slate-400 group-hover:text-emerald-100">
+                <span>🔥 Operação aquecida</span>
+              </div>
+            </div>
+            <div className="bg-slate-900 p-8 rounded-[2.5rem] shadow-2xl text-white relative overflow-hidden">
+               <div className="relative z-10">
+                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Contatos Agendados</p>
+                <h4 className="text-5xl font-black text-white mt-3 tracking-tighter">{upcomingContacts.length}</h4>
+                <div className="mt-4">
+                  <button onClick={() => setActiveTab('companies')} className="text-[9px] font-black text-blue-400 uppercase tracking-widest hover:text-blue-300">Ver Agenda →</button>
+                </div>
+               </div>
+               <div className="absolute -right-10 -bottom-10 text-[10rem] opacity-5 select-none">🔔</div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+            <div className="lg:col-span-2 bg-white p-10 rounded-[3rem] border border-slate-200 shadow-xl shadow-slate-900/5">
+               <div className="flex justify-between items-center mb-10">
+                 <h4 className="text-lg font-black text-slate-800 uppercase tracking-tight">Matriz de Capilaridade Comercial</h4>
+                 <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Top 8 Parceiros por Equipe</div>
+               </div>
+               <div className="h-80">
                  <ResponsiveContainer width="100%" height="100%">
                    <BarChart data={companies.slice(0, 8)}>
                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                     <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 10}} />
-                     <Tooltip cursor={{fill: '#f8fafc'}} contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)'}} />
-                     <Bar dataKey="brokerCount" radius={[6, 6, 0, 0]} fill="#3b82f6" />
+                     <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 10, fontWeight: 'bold'}} />
+                     <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 10}} />
+                     <Tooltip 
+                        cursor={{fill: '#f8fafc'}} 
+                        contentStyle={{borderRadius: '24px', border: 'none', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.15)', padding: '15px'}} 
+                        labelStyle={{fontWeight: 'black', marginBottom: '5px', color: '#1e293b'}}
+                     />
+                     <Bar dataKey="brokerCount" radius={[12, 12, 0, 0]} fill="#3b82f6" barSize={40}>
+                        {companies.map((_, index) => (
+                          <Cell key={`cell-${index}`} fill={index % 2 === 0 ? '#3b82f6' : '#6366f1'} />
+                        ))}
+                     </Bar>
                    </BarChart>
                  </ResponsiveContainer>
                </div>
             </div>
-            <div className="bg-slate-900 rounded-2xl p-6 shadow-xl text-white">
-               <div className="flex justify-between items-center mb-6">
-                 <h4 className="font-bold">IA Strategy</h4>
-                 <button onClick={fetchAIInsights} disabled={loadingInsights} className="text-xs bg-white/10 px-3 py-1.5 rounded-lg hover:bg-white/20 transition-all">{loadingInsights ? '...' : 'Analisar'}</button>
+            <div className="bg-slate-950 rounded-[3rem] p-10 shadow-2xl text-white flex flex-col">
+               <div className="flex justify-between items-center mb-8">
+                 <div className="flex items-center gap-3">
+                   <div className="w-8 h-8 bg-blue-600 rounded-xl flex items-center justify-center text-lg">💡</div>
+                   <h4 className="font-black text-sm uppercase tracking-widest">Insight Engine</h4>
+                 </div>
+                 <button onClick={fetchAIInsights} disabled={loadingInsights} className="text-[10px] font-black bg-white/10 px-4 py-2 rounded-xl hover:bg-white/20 transition-all uppercase tracking-widest">
+                   {loadingInsights ? 'Processando...' : 'Atualizar'}
+                 </button>
                </div>
-               <div className="text-xs leading-relaxed text-slate-400 italic">
-                 {aiInsights || "Use a IA para identificar empresas com baixa atividade ou oportunidades de aumento de comissão."}
+               <div className="flex-1 text-xs leading-relaxed text-slate-400 font-medium italic overflow-y-auto custom-scrollbar pr-4">
+                 {aiInsights || "Acione a inteligência artificial para uma análise cruzada entre volumetria de corretores, taxas de comissão e desempenho por gestor de conta (Hub)."}
                </div>
+               <div className="mt-8 pt-6 border-t border-white/10 text-[9px] text-slate-500 font-bold uppercase tracking-[0.2em] text-center">Powered by Gemini IA</div>
             </div>
           </div>
         </div>
       )}
 
       {activeTab === 'companies' && (
-        <div className="space-y-6 animate-fadeIn">
+        <div className="space-y-10 animate-fadeIn">
           {!showForm ? (
             <>
-              <div className="flex flex-col space-y-4 no-print">
+              <div className="flex flex-col space-y-6 no-print">
                 <div className="flex justify-between items-end">
                    <div>
-                     <h3 className="text-xl font-bold text-slate-800">Parceiros Cadastrados</h3>
-                     <p className="text-xs text-slate-500">Gerencie sua rede de imobiliárias e contatos.</p>
+                     <h3 className="text-3xl font-black text-slate-900 tracking-tight">Base de Parceiros</h3>
+                     <p className="text-sm text-slate-500 font-medium">Gestão centralizada de credenciamentos e acordos comerciais.</p>
                    </div>
-                   <div className="flex gap-3">
-                     <button onClick={() => setActiveTab('prospecting')} className="px-5 py-3 bg-indigo-50 text-indigo-700 border border-indigo-100 rounded-xl font-bold shadow-sm hover:bg-indigo-100 transition-all active:scale-95 flex items-center gap-2">
-                       <span>📡</span> Buscar Online
-                     </button>
-                     <button onClick={handleExportCSV} className="px-5 py-3 bg-white text-slate-700 border border-slate-200 rounded-xl font-bold shadow-sm hover:bg-slate-50 transition-all active:scale-95 flex items-center gap-2">
-                       <span>📊</span> Exportar CSV
-                     </button>
-                     <button onClick={() => setShowForm(true)} className="px-8 py-3 bg-blue-600 text-white rounded-xl font-bold shadow-lg hover:bg-blue-700 transition-all active:scale-95">Novo Parceiro</button>
+                   <div className="flex gap-4">
+                     <button onClick={() => setShowForm(true)} className="px-10 h-14 bg-blue-600 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-2xl shadow-blue-200 hover:bg-blue-700 transition-all active:scale-95">Novo Credenciamento</button>
                    </div>
                 </div>
 
-                <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-6">
-                  <div className="flex items-center justify-between border-b border-slate-50 pb-3">
-                    <span className="text-[10px] font-black uppercase text-blue-600 tracking-widest">Filtros da Rede</span>
-                    <button onClick={handleClearFilters} className="text-[10px] font-bold text-slate-400 hover:text-red-500 uppercase flex items-center gap-1 transition-colors">
-                      Limpar Filtros ✖
-                    </button>
-                  </div>
-                  
-                  <div className="space-y-6">
-                    {/* Filtros Principais */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                      <div className="space-y-1.5">
-                        <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Imobiliária</label>
-                        <input 
-                          type="text" 
-                          placeholder="Nome da empresa..." 
-                          className="w-full p-2.5 bg-slate-50 border border-slate-100 rounded-xl text-xs font-bold text-slate-600 outline-none focus:ring-2 focus:ring-blue-500"
-                          value={nameFilter}
-                          onChange={e => setNameFilter(e.target.value)}
-                        />
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Status</label>
-                        <select 
-                          className="w-full p-2.5 bg-slate-50 border border-slate-100 rounded-xl text-xs font-bold text-slate-600 outline-none focus:ring-2 focus:ring-blue-500"
-                          value={statusFilter}
-                          onChange={e => setStatusFilter(e.target.value)}
-                        >
-                          <option value="all">Todos os Status</option>
-                          <option value="Ativo">Ativo</option>
-                          <option value="Inativo">Inativo</option>
-                        </select>
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <label className="text-[10px] font-black uppercase text-indigo-600 ml-1">Número CRECI</label>
-                        <input 
-                          type="text" 
-                          placeholder="Buscar CRECI..." 
-                          className="w-full p-2.5 bg-indigo-50/50 border border-indigo-100 rounded-xl text-xs font-bold text-indigo-900 outline-none focus:ring-2 focus:ring-indigo-500"
-                          value={creciFilter}
-                          onChange={e => setCreciFilter(e.target.value)}
-                        />
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <label className="text-[10px] font-black uppercase text-indigo-600 ml-1">UF do CRECI</label>
-                        <select 
-                          className="w-full p-2.5 bg-indigo-50/50 border border-indigo-100 rounded-xl text-xs font-bold text-indigo-900 outline-none focus:ring-2 focus:ring-indigo-500"
-                          value={creciUfFilter}
-                          onChange={e => setCreciUfFilter(e.target.value)}
-                        >
-                          <option value="all">Todas as UFs</option>
-                          {BR_STATES.map(uf => (
-                            <option key={uf} value={uf}>{uf}</option>
-                          ))}
-                        </select>
-                      </div>
+                <div className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-xl shadow-slate-900/5 space-y-8">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Pesquisar Empresa</label>
+                      <input 
+                        type="text" 
+                        placeholder="Nome imobiliária..." 
+                        className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-xl text-xs font-bold text-slate-700 focus:bg-white focus:border-blue-500 outline-none transition-all"
+                        value={nameFilter}
+                        onChange={e => setNameFilter(e.target.value)}
+                      />
                     </div>
-
-                    {/* Filtros Secundários */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 pt-4 border-t border-slate-50">
-                      <div className="space-y-1.5">
-                        <label className="text-[10px] font-black uppercase text-slate-400 ml-1">CNPJ / CPF</label>
-                        <input 
-                          type="text" 
-                          placeholder="Apenas números..." 
-                          className="w-full p-2.5 bg-slate-50 border border-slate-100 rounded-xl text-xs font-bold text-slate-600 outline-none"
-                          value={cnpjFilter}
-                          onChange={e => setCnpjFilter(e.target.value)}
-                        />
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <label className="text-[10px] font-black uppercase text-blue-600 ml-1">CEP</label>
-                        <input 
-                          type="text" 
-                          placeholder="Ex: 01310-100" 
-                          className="w-full p-2.5 bg-blue-50/30 border border-blue-100 rounded-xl text-xs font-bold text-blue-900 outline-none focus:ring-2 focus:ring-blue-500"
-                          value={cepFilter}
-                          onChange={e => setCepFilter(e.target.value)}
-                        />
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Gestor do Hub</label>
-                        <select 
-                          className="w-full p-2.5 bg-slate-50 border border-slate-100 rounded-xl text-xs font-bold text-slate-600 outline-none"
-                          value={partnershipManagerFilter}
-                          onChange={e => setPartnershipManagerFilter(e.target.value)}
-                        >
-                          <option value="all">Todos os Gestores</option>
-                          {uniquePartnershipManagers.map(manager => (
-                            <option key={manager} value={manager}>{manager}</option>
-                          ))}
-                        </select>
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <label className="text-[10px] font-black uppercase text-emerald-600 ml-1">Tipo de Contato</label>
-                        <select 
-                          className="w-full p-2.5 bg-emerald-50/50 border border-emerald-100 rounded-xl text-xs font-bold text-emerald-900 outline-none"
-                          value={contactTypeFilter}
-                          onChange={e => setContactTypeFilter(e.target.value)}
-                        >
-                          <option value="all">Interação (Qualquer)</option>
-                          <option value="Telefone">📞 Telefone</option>
-                          <option value="WhatsApp">💬 WhatsApp</option>
-                          <option value="E-mail">📧 E-mail</option>
-                          <option value="Reunião">🤝 Reunião</option>
-                          <option value="Vídeo">🎥 Vídeo</option>
-                          <option value="Visita">🏠 Visita</option>
-                          <option value="Evento">🎟️ Evento</option>
-                          <option value="Outros">⚙️ Outros</option>
-                        </select>
-                      </div>
-
-                      <div className="flex gap-2">
-                        <div className="space-y-1.5 flex-1">
-                          <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Mín. Equipe</label>
-                          <input 
-                            type="number" 
-                            className="w-full p-2.5 bg-slate-50 border border-slate-100 rounded-xl text-xs font-bold text-slate-600 outline-none"
-                            value={minBrokers}
-                            onChange={e => setMinBrokers(e.target.value)}
-                          />
-                        </div>
-                        <div className="space-y-1.5 flex-1">
-                          <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Máx. Equipe</label>
-                          <input 
-                            type="number" 
-                            className="w-full p-2.5 bg-slate-50 border border-slate-100 rounded-xl text-xs font-bold text-slate-600 outline-none"
-                            value={maxBrokers}
-                            onChange={e => setMaxBrokers(e.target.value)}
-                          />
-                        </div>
-                      </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Responsável Interno (Hub)</label>
+                      <select 
+                        className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-xl text-xs font-bold text-slate-700 outline-none"
+                        value={hiringManagerFilter}
+                        onChange={e => setHiringManagerFilter(e.target.value)}
+                      >
+                        <option value="all">Todos os Gestores</option>
+                        {uniqueHiringManagers.map(m => <option key={m} value={m}>{m}</option>)}
+                      </select>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Status Operacional</label>
+                      <select 
+                        className="w-full h-12 px-5 bg-slate-50 border border-slate-100 rounded-xl text-xs font-bold text-slate-700 outline-none"
+                        value={statusFilter}
+                        onChange={e => setStatusFilter(e.target.value)}
+                      >
+                        <option value="all">Ver Todos</option>
+                        <option value="Ativo">Ativo</option>
+                        <option value="Inativo">Inativo</option>
+                      </select>
+                    </div>
+                    <div className="flex items-end">
+                      <button onClick={() => { setNameFilter(''); setCnpjFilter(''); setHiringManagerFilter('all'); setStatusFilter('all'); }} className="w-full h-12 bg-slate-100 text-slate-500 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-200 transition-all">Limpar Filtros</button>
                     </div>
                   </div>
                 </div>
               </div>
 
-              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+              <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-2xl shadow-slate-900/5 overflow-hidden">
                 <table className="w-full text-left">
-                  <thead className="bg-slate-50 border-b">
-                    <tr className="text-xs font-bold text-slate-400 uppercase tracking-widest">
-                      <th className="px-6 py-4">Parceiro / Identificação</th>
-                      <th className="px-6 py-4">Responsáveis (Hub / Externo)</th>
-                      <th className="px-6 py-4">Status</th>
-                      <th className="px-6 py-4 text-center">Equipe</th>
-                      <th className="px-6 py-4 text-right">Ações</th>
+                  <thead className="bg-slate-900 border-b border-slate-800">
+                    <tr className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                      <th className="px-8 py-5">Imobiliária / Documento</th>
+                      <th className="px-8 py-5">Gestão (Hub / Externo)</th>
+                      <th className="px-8 py-5 text-center">Status Operacional</th>
+                      <th className="px-8 py-5 text-center">Equipe (Ajuste Rápido)</th>
+                      <th className="px-8 py-5 text-right">Controles</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y">
+                  <tbody className="divide-y divide-slate-100">
                     {filteredCompanies.length > 0 ? filteredCompanies.map(c => (
-                      <tr key={c.id} className="hover:bg-slate-50 transition-colors">
-                        <td className="px-6 py-4">
-                          <p className="font-bold text-slate-800">{c.name}</p>
-                          <div className="flex flex-col gap-0.5">
-                            <p className="text-[10px] text-slate-400 font-mono">
-                              {c.docType === 'CRECI' 
-                                ? `CRECI: ${c.cnpj} / ${c.creciUF}` 
-                                : `${c.docType}: ${c.cnpj}`}
-                            </p>
-                            {c.cep && <p className="text-[9px] text-blue-500 font-bold">CEP: {c.cep}</p>}
-                          </div>
+                      <tr key={c.id} className="hover:bg-slate-50 transition-all">
+                        <td className="px-8 py-6">
+                          <p className="font-black text-slate-800 text-sm tracking-tight">{c.name}</p>
+                          <p className="text-[10px] text-slate-400 font-mono mt-1">{c.docType}: {c.cnpj}</p>
                         </td>
-                        <td className="px-6 py-4">
-                          <p className="text-[10px] font-black text-blue-600 uppercase">Hub: {c.hiringManager}</p>
-                          <p className="text-xs font-medium text-slate-700">{c.partnershipManager || 'N/A'}</p>
-                          <p className="text-[10px] text-emerald-600 font-bold">{c.lastContactType ? `Última: ${c.lastContactType}` : 'Sem histórico'}</p>
+                        <td className="px-8 py-6">
+                          <p className="text-[10px] font-black text-blue-600 uppercase mb-1">Hub: {c.hiringManager}</p>
+                          <p className="text-xs font-bold text-slate-700">{c.partnershipManager || 'N/A'}</p>
                         </td>
-                        <td className="px-6 py-4">
-                          <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider shadow-sm transition-all ${c.status === 'Ativo' ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-slate-100 text-slate-500 border border-slate-200'}`}>
-                            {c.status === 'Ativo' ? (
-                              <span className="text-sm">✅</span>
-                            ) : (
-                              <span className="text-sm">⏸️</span>
-                            )}
-                            {c.status}
+                        <td className="px-8 py-6 text-center">
+                          <span className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${c.status === 'Ativo' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-50 text-slate-500 border-slate-200'}`}>
+                            {c.status === 'Ativo' ? '🟢 ATIVO' : '🔴 PAUSADO'}
                           </span>
                         </td>
-                        <td className="px-6 py-4 text-center font-bold text-slate-600">{c.brokerCount}</td>
-                        <td className="px-6 py-4 text-right space-x-2">
-                          <button onClick={() => setSelectedCompanyForDetails(c)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Ver Detalhes">👁️</button>
-                          <button onClick={() => handleEdit(c)} className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors" title="Editar">✏️</button>
-                          <button onClick={() => setCompanyToDelete(c)} className="p-2 text-red-400 hover:bg-red-50 rounded-lg transition-colors" title="Excluir">🗑️</button>
+                        <td className="px-8 py-6">
+                          <div className="flex items-center justify-center gap-4">
+                            <button 
+                              onClick={() => handleUpdateBrokerCount(c.id, -1)}
+                              className="w-8 h-8 flex items-center justify-center rounded-xl bg-slate-100 text-slate-600 hover:bg-red-50 hover:text-red-600 transition-all active:scale-90 shadow-sm border border-slate-200"
+                            >
+                              -
+                            </button>
+                            <span className="w-8 text-center font-black text-slate-900 text-sm">{c.brokerCount}</span>
+                            <button 
+                              onClick={() => handleUpdateBrokerCount(c.id, 1)}
+                              className="w-8 h-8 flex items-center justify-center rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition-all active:scale-90 shadow-sm border border-blue-100"
+                            >
+                              +
+                            </button>
+                          </div>
+                        </td>
+                        <td className="px-8 py-6 text-right">
+                          <div className="flex justify-end gap-2">
+                            <button onClick={() => setSelectedCompanyForDetails(c)} className="p-3 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all">👁️</button>
+                            <button onClick={() => handleEdit(c)} className="p-3 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all">✏️</button>
+                            <button onClick={() => setCompanyToDelete(c)} className="p-3 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all">🗑️</button>
+                          </div>
                         </td>
                       </tr>
                     )) : (
                       <tr>
-                        <td colSpan={5} className="px-6 py-12 text-center text-slate-400 italic">
-                          <div className="flex flex-col items-center">
-                            <span className="text-4xl mb-2 opacity-20">🔍</span>
-                            <p>Nenhum parceiro encontrado com os filtros atuais.</p>
-                          </div>
+                        <td colSpan={5} className="px-8 py-20 text-center">
+                          <div className="text-5xl mb-4 grayscale opacity-30">🕵️‍♂️</div>
+                          <p className="text-sm font-black text-slate-400 uppercase tracking-widest">Nenhum parceiro encontrado nesta busca</p>
                         </td>
                       </tr>
                     )}
@@ -558,11 +397,18 @@ const App: React.FC = () => {
 
       {activeTab === 'prospecting' && <ProspectingView onImport={handleImport} />}
       {activeTab === 'map' && <InteractiveMap companies={companies} />}
-      {activeTab === 'reports' && <ReportsView companies={companies} onEdit={handleEdit} onDelete={(id) => setCompanyToDelete(companies.find(c => c.id === id) || null)} onView={setSelectedCompanyForDetails} />}
+      {activeTab === 'reports' && (
+        <ReportsView 
+          companies={companies} 
+          onEdit={handleEdit} 
+          onDelete={(id) => setCompanyToDelete(companies.find(c => c.id === id) || null)} 
+          onView={setSelectedCompanyForDetails}
+          onRestore={handleRestore}
+        />
+      )}
       
       {selectedCompanyForDetails && <CompanyDetailsModal company={selectedCompanyForDetails} onClose={() => setSelectedCompanyForDetails(null)} onUpdate={handleUpdateCompany} />}
       {companyToDelete && <DeleteConfirmationModal company={companyToDelete} onConfirm={() => { setCompanies(companies.filter(x => x.id !== companyToDelete.id)); setCompanyToDelete(null); }} onCancel={() => setCompanyToDelete(null)} />}
-      {showShareModal && <ShareLinkModal url={publicRegistrationUrl} onClose={() => setShowShareModal(false)} />}
     </Layout>
   );
 };
