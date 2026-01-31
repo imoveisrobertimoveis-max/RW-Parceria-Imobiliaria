@@ -20,6 +20,7 @@ const App: React.FC = () => {
   const [companyToDelete, setCompanyToDelete] = useState<Company | null>(null);
   const [aiInsights, setAiInsights] = useState<string>('');
   const [loadingInsights, setLoadingInsights] = useState(false);
+  const [showInstallGuide, setShowInstallGuide] = useState(false);
   
   // Filtros Avançados
   const [nameFilter, setNameFilter] = useState('');
@@ -174,6 +175,67 @@ const App: React.FC = () => {
 
   return (
     <Layout activeTab={activeTab} setActiveTab={setActiveTab} companies={companies} upcomingContacts={upcomingContacts}>
+      <div className="absolute top-10 right-10 z-[100] no-print">
+        <button 
+          onClick={() => setShowInstallGuide(true)}
+          className="w-12 h-12 bg-slate-900 text-white rounded-2xl flex items-center justify-center text-xl shadow-xl hover:bg-blue-600 transition-all active:scale-95"
+          title="Guia de Instalação Windows"
+        >
+          🪟
+        </button>
+      </div>
+
+      {showInstallGuide && (
+        <div className="fixed inset-0 z-[200] bg-slate-900/80 backdrop-blur-md flex items-center justify-center p-6 animate-fadeIn">
+          <div className="bg-white w-full max-w-2xl rounded-[3rem] shadow-2xl overflow-hidden border border-slate-200 animate-slideUp">
+             <div className="p-10 space-y-8">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-3xl font-black text-slate-900 tracking-tight">O Caminho: Instalação Windows</h3>
+                  <button onClick={() => setShowInstallGuide(false)} className="text-slate-400 hover:text-red-500 text-3xl">×</button>
+                </div>
+
+                <div className="space-y-6">
+                   <div className="flex gap-6 items-start">
+                      <div className="w-10 h-10 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center font-black flex-shrink-0">1</div>
+                      <div>
+                        <h5 className="font-black text-slate-800 uppercase text-[10px] tracking-widest">Requisito Obrigatório</h5>
+                        <p className="text-sm text-slate-500 font-medium">Instale o **Node.js v18+** em <a href="https://nodejs.org" target="_blank" className="text-blue-600 underline">nodejs.org</a>. Sem ele, o sistema não funciona.</p>
+                      </div>
+                   </div>
+                   <div className="flex gap-6 items-start">
+                      <div className="w-10 h-10 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center font-black flex-shrink-0">2</div>
+                      <div>
+                        <h5 className="font-black text-slate-800 uppercase text-[10px] tracking-widest">Extração</h5>
+                        <p className="text-sm text-slate-500 font-medium">Coloque todos os arquivos (incluindo o `instalar_windows.bat`) em uma pasta no seu C: ou Desktop.</p>
+                      </div>
+                   </div>
+                   <div className="flex gap-6 items-start">
+                      <div className="w-10 h-10 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center font-black flex-shrink-0">3</div>
+                      <div>
+                        <h5 className="font-black text-slate-800 uppercase text-[10px] tracking-widest">Execução</h5>
+                        <p className="text-sm text-slate-500 font-medium">Clique com o botão direito no arquivo **instalar_windows.bat** e escolha "Executar como Administrador".</p>
+                      </div>
+                   </div>
+                   <div className="flex gap-6 items-start">
+                      <div className="w-10 h-10 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center font-black flex-shrink-0">4</div>
+                      <div>
+                        <h5 className="font-black text-slate-800 uppercase text-[10px] tracking-widest">Sucesso</h5>
+                        <p className="text-sm text-slate-500 font-medium">O instalador abrirá uma janela preta. Espere terminar e o CRM abrirá automaticamente como um aplicativo de desktop.</p>
+                      </div>
+                   </div>
+                </div>
+
+                <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100">
+                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Dica de Segurança</p>
+                   <p className="text-xs text-slate-500 leading-relaxed italic">Se o Windows SmartScreen bloquear, clique em "Mais Informações" e depois em "Executar assim mesmo". O script é 100% seguro.</p>
+                </div>
+
+                <button onClick={() => setShowInstallGuide(false)} className="w-full h-16 bg-slate-900 text-white rounded-2xl font-black uppercase tracking-widest hover:bg-black transition-all">Entendi, vou tentar novamente ✓</button>
+             </div>
+          </div>
+        </div>
+      )}
+
       {activeTab === 'dashboard' && (
         <div className="space-y-10 animate-fadeIn">
           <div className="flex justify-between items-end">
