@@ -1,0 +1,28 @@
+
+============================================================
+      COMO INSTALAR O PARTNERHUB CRM NO SEU WINDOWS
+============================================================
+
+Para que o sistema funcione corretamente, siga este "Caminho":
+
+PASSO 1: INSTALAR O MOTOR (NODE.JS)
+O sistema precisa de um programa chamado Node.js. 
+Se você não tem, baixe aqui: https://nodejs.org/
+(Escolha a versão "LTS" ou a que o instalador .bat abrir)
+
+PASSO 2: EXECUTAR O INSTALADOR
+Clique duas vezes no arquivo chamado: instalar_windows.bat
+Uma tela preta vai abrir e configurar tudo sozinha.
+
+PASSO 3: USAR O SISTEMA
+O CRM vai abrir no seu navegador (Chrome/Edge). 
+Tudo o que você fizer ficará salvo no seu computador.
+
+PASSO 4: RESTAURAÇÃO (COFRE)
+Dentro do sistema, na aba "Central de BI", você verá um botão 
+chamado "Baixar Pack de Códigos". Use ele toda semana para 
+ter um backup de segurança em um pendrive.
+
+------------------------------------------------------------
+SUPORTE: Se a tela preta fechar rápido, tente reiniciar o PC.
+============================================================

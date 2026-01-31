@@ -22,7 +22,6 @@ const App: React.FC = () => {
   const [loadingInsights, setLoadingInsights] = useState(false);
   const [showInstallGuide, setShowInstallGuide] = useState(false);
   
-  // Filtros Avançados
   const [nameFilter, setNameFilter] = useState('');
   const [cnpjFilter, setCnpjFilter] = useState('');
   const [hiringManagerFilter, setHiringManagerFilter] = useState<string>('all');
@@ -74,7 +73,6 @@ const App: React.FC = () => {
     today.setHours(0,0,0,0);
     const nextWeek = new Date();
     nextWeek.setDate(today.getDate() + 7);
-
     return companies.filter(c => {
       if (!c.nextContactDate) return false;
       const d = new Date(c.nextContactDate);
@@ -175,62 +173,89 @@ const App: React.FC = () => {
 
   return (
     <Layout activeTab={activeTab} setActiveTab={setActiveTab} companies={companies} upcomingContacts={upcomingContacts}>
-      <div className="absolute top-10 right-10 z-[100] no-print">
+      {/* Botão Flutuante de Ajuda - O Caminho */}
+      <div className="fixed bottom-10 right-10 z-[100] no-print">
         <button 
           onClick={() => setShowInstallGuide(true)}
-          className="w-12 h-12 bg-slate-900 text-white rounded-2xl flex items-center justify-center text-xl shadow-xl hover:bg-blue-600 transition-all active:scale-95"
-          title="Guia de Instalação Windows"
+          className="w-16 h-16 bg-blue-600 text-white rounded-full flex items-center justify-center text-2xl shadow-2xl hover:bg-slate-900 hover:scale-110 transition-all active:scale-95 border-4 border-white"
+          title="Manual do Caminho"
         >
-          🪟
+          🛤️
         </button>
       </div>
 
       {showInstallGuide && (
-        <div className="fixed inset-0 z-[200] bg-slate-900/80 backdrop-blur-md flex items-center justify-center p-6 animate-fadeIn">
-          <div className="bg-white w-full max-w-2xl rounded-[3rem] shadow-2xl overflow-hidden border border-slate-200 animate-slideUp">
-             <div className="p-10 space-y-8">
+        <div className="fixed inset-0 z-[200] bg-slate-900/90 backdrop-blur-xl flex items-center justify-center p-6 animate-fadeIn">
+          <div className="bg-white w-full max-w-3xl rounded-[4rem] shadow-2xl overflow-hidden border border-slate-200 animate-slideUp relative">
+             <div className="p-12 space-y-10">
                 <div className="flex justify-between items-center">
-                  <h3 className="text-3xl font-black text-slate-900 tracking-tight">O Caminho: Instalação Windows</h3>
-                  <button onClick={() => setShowInstallGuide(false)} className="text-slate-400 hover:text-red-500 text-3xl">×</button>
+                  <div className="space-y-1">
+                    <h3 className="text-4xl font-black text-slate-900 tracking-tighter">O Caminho da Instalação</h3>
+                    <p className="text-slate-500 font-bold uppercase tracking-[0.2em] text-[10px]">Guia Passo a Passo para Windows</p>
+                  </div>
+                  <button onClick={() => setShowInstallGuide(false)} className="w-12 h-12 bg-slate-100 text-slate-400 hover:text-red-500 rounded-full text-3xl flex items-center justify-center transition-colors">×</button>
                 </div>
 
-                <div className="space-y-6">
-                   <div className="flex gap-6 items-start">
-                      <div className="w-10 h-10 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center font-black flex-shrink-0">1</div>
-                      <div>
-                        <h5 className="font-black text-slate-800 uppercase text-[10px] tracking-widest">Requisito Obrigatório</h5>
-                        <p className="text-sm text-slate-500 font-medium">Instale o **Node.js v18+** em <a href="https://nodejs.org" target="_blank" className="text-blue-600 underline">nodejs.org</a>. Sem ele, o sistema não funciona.</p>
+                <div className="relative space-y-8 before:absolute before:left-7 before:top-2 before:bottom-2 before:w-[2px] before:bg-slate-100">
+                   {/* Passo 1 */}
+                   <div className="relative flex gap-10 items-start group">
+                      <div className="w-14 h-14 bg-blue-600 text-white rounded-2xl flex items-center justify-center font-black text-xl flex-shrink-0 z-10 shadow-xl group-hover:bg-blue-700 transition-all">1</div>
+                      <div className="space-y-2 pt-2">
+                        <h5 className="font-black text-slate-900 text-lg">Instale o Motor (Node.js)</h5>
+                        <p className="text-sm text-slate-500 font-medium leading-relaxed">
+                          O sistema precisa do motor **Node.js**. Se você abriu o `instalar_windows.bat` e ele abriu um site, baixe e instale aquele arquivo primeiro. 
+                          <span className="block mt-1 text-blue-600 font-bold">Importante: Reinicie o PC após instalar!</span>
+                        </p>
                       </div>
                    </div>
-                   <div className="flex gap-6 items-start">
-                      <div className="w-10 h-10 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center font-black flex-shrink-0">2</div>
-                      <div>
-                        <h5 className="font-black text-slate-800 uppercase text-[10px] tracking-widest">Extração</h5>
-                        <p className="text-sm text-slate-500 font-medium">Coloque todos os arquivos (incluindo o `instalar_windows.bat`) em uma pasta no seu C: ou Desktop.</p>
+
+                   {/* Passo 2 */}
+                   <div className="relative flex gap-10 items-start group">
+                      <div className="w-14 h-14 bg-indigo-600 text-white rounded-2xl flex items-center justify-center font-black text-xl flex-shrink-0 z-10 shadow-xl group-hover:bg-indigo-700 transition-all">2</div>
+                      <div className="space-y-2 pt-2">
+                        <h5 className="font-black text-slate-900 text-lg">O Instalador Automático</h5>
+                        <p className="text-sm text-slate-500 font-medium leading-relaxed">
+                          Com o PC reiniciado, clique com o botão direito no arquivo **`instalar_windows.bat`** e escolha "Executar como Administrador". Uma tela preta aparecerá e configurará tudo sozinha.
+                        </p>
                       </div>
                    </div>
-                   <div className="flex gap-6 items-start">
-                      <div className="w-10 h-10 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center font-black flex-shrink-0">3</div>
-                      <div>
-                        <h5 className="font-black text-slate-800 uppercase text-[10px] tracking-widest">Execução</h5>
-                        <p className="text-sm text-slate-500 font-medium">Clique com o botão direito no arquivo **instalar_windows.bat** e escolha "Executar como Administrador".</p>
+
+                   {/* Passo 3 */}
+                   <div className="relative flex gap-10 items-start group">
+                      <div className="w-14 h-14 bg-emerald-600 text-white rounded-2xl flex items-center justify-center font-black text-xl flex-shrink-0 z-10 shadow-xl group-hover:bg-emerald-700 transition-all">3</div>
+                      <div className="space-y-2 pt-2">
+                        <h5 className="font-black text-slate-900 text-lg">Acesso ao CRM</h5>
+                        <p className="text-sm text-slate-500 font-medium leading-relaxed">
+                          Assim que a tela preta terminar, seu navegador (Chrome ou Edge) abrirá automaticamente com o PartnerHub. **Não feche a tela preta** enquanto estiver usando o CRM.
+                        </p>
                       </div>
                    </div>
-                   <div className="flex gap-6 items-start">
-                      <div className="w-10 h-10 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center font-black flex-shrink-0">4</div>
-                      <div>
-                        <h5 className="font-black text-slate-800 uppercase text-[10px] tracking-widest">Sucesso</h5>
-                        <p className="text-sm text-slate-500 font-medium">O instalador abrirá uma janela preta. Espere terminar e o CRM abrirá automaticamente como um aplicativo de desktop.</p>
+
+                   {/* Passo 4 */}
+                   <div className="relative flex gap-10 items-start group">
+                      <div className="w-14 h-14 bg-amber-500 text-white rounded-2xl flex items-center justify-center font-black text-xl flex-shrink-0 z-10 shadow-xl group-hover:bg-amber-600 transition-all">4</div>
+                      <div className="space-y-2 pt-2">
+                        <h5 className="font-black text-slate-900 text-lg">Segurança de Dados (Cofre)</h5>
+                        <p className="text-sm text-slate-500 font-medium leading-relaxed">
+                          Sempre que cadastrar novas empresas, vá na aba **Central de BI** e clique em **"Baixar Pack de Códigos"**. Isso garante que você nunca perca seu trabalho.
+                        </p>
                       </div>
                    </div>
                 </div>
 
-                <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100">
-                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Dica de Segurança</p>
-                   <p className="text-xs text-slate-500 leading-relaxed italic">Se o Windows SmartScreen bloquear, clique em "Mais Informações" e depois em "Executar assim mesmo". O script é 100% seguro.</p>
+                <div className="bg-slate-50 p-8 rounded-3xl border border-slate-100 flex items-center gap-6">
+                   <span className="text-4xl">💡</span>
+                   <p className="text-xs text-slate-500 font-medium leading-relaxed">
+                     **Dica de mestre:** Se o Windows disser "O computador foi protegido", clique em **"Mais informações"** e depois em **"Executar assim mesmo"**. O sistema é totalmente seguro.
+                   </p>
                 </div>
 
-                <button onClick={() => setShowInstallGuide(false)} className="w-full h-16 bg-slate-900 text-white rounded-2xl font-black uppercase tracking-widest hover:bg-black transition-all">Entendi, vou tentar novamente ✓</button>
+                <button 
+                  onClick={() => setShowInstallGuide(false)} 
+                  className="w-full h-20 bg-slate-900 text-white rounded-[2rem] font-black uppercase tracking-[0.2em] text-sm hover:bg-black transition-all shadow-2xl active:scale-[0.98]"
+                >
+                  Entendi o Caminho, prosseguir ✓
+                </button>
              </div>
           </div>
         </div>
